@@ -1,0 +1,160 @@
+##
+## Variables
+##
+## Mod-keys ##
+set $alt Mod1
+set $win Mod4
+
+#font pango:monospace 8
+#font pango:DejaVu Sans Mono 8
+#font -misc-fixed-medium-r-normal--13-120-75-75-C-70-iso10646-1
+font pango:Ubuntu 8
+
+##
+##Autostart
+##
+#exec sh /home/user/.fehbg
+exec --no-startup-id nitrogen --restore
+exec xrandr --output HDMI2 --auto --left-of DP3
+exec compton --config /home/user/.config/compton/config -b
+exec conky -c /home/user/.config/conky/lemonbar.conf -d
+exec sh /home/user/.config/lemonbar/config
+
+##
+##Looks
+##
+
+#gaps
+gaps inner 13
+gaps outer 0
+
+new_window pixel 3
+
+# class                   border  backgr. text    indicator
+client.focused            #ff6600 #ff6600 #111111 #ff6600
+client.focused_inactive   #993d00 #993d00 #5f676a
+client.unfocused          #993d00 #993d00 #888888 #993d00 
+client.urgent             #ff0000 #ff0000 #ffffff #ff0000
+
+##
+##Navigation
+##
+
+# change focus
+bindsym $alt+h focus left
+bindsym $alt+j focus down
+bindsym $alt+k focus up
+bindsym $alt+l focus right
+
+# move focused window
+bindsym $alt+Shift+h move left
+bindsym $alt+Shift+j move down
+bindsym $alt+Shift+k move up
+bindsym $alt+Shift+l move right
+
+# switch to workspace
+bindsym $alt+1 workspace 1
+bindsym $alt+2 workspace 2
+bindsym $alt+3 workspace 3
+bindsym $alt+4 workspace 4
+bindsym $alt+5 workspace 5
+bindsym $alt+6 workspace 6
+bindsym $alt+7 workspace 7
+bindsym $alt+8 workspace 8
+bindsym $alt+9 workspace 9
+bindsym $alt+0 workspace 10
+
+# move focused container to workspace
+bindsym $alt+Shift+1 move container to workspace 1
+bindsym $alt+Shift+2 move container to workspace 2
+bindsym $alt+Shift+3 move container to workspace 3
+bindsym $alt+Shift+4 move container to workspace 4
+bindsym $alt+Shift+5 move container to workspace 5
+bindsym $alt+Shift+6 move container to workspace 6
+bindsym $alt+Shift+7 move container to workspace 7
+bindsym $alt+Shift+8 move container to workspace 8
+bindsym $alt+Shift+9 move container to workspace 9
+bindsym $alt+Shift+0 move container to workspace 10
+
+#split window
+bindsym $alt+u split v
+bindsym $alt+i split h
+bindsym $alt+o fullscreen toggle
+
+
+
+
+
+
+
+#Use Mouse+$alt to drag floating windows to their wanted position
+floating_modifier $alt
+
+
+# kill focused window
+bindsym $alt+w kill
+
+# start dmenu (a program launcher)
+bindsym $alt+p exec --no-startup-id i3-dmenu-desktop
+
+# change container layout (stacked, tabbed, toggle split)
+#bindsym $alt+s layout stacking
+#bindsym $alt+a layout tabbed
+#bindsym $alt+z layout toggle split
+
+# toggle tiling / floating
+bindsym $alt+f floating toggle
+
+# change focus between tiling / floating windows
+bindsym $alt+Shift+f focus mode_toggle
+
+# focus the parent container
+#bindsym $alt+a focus parent
+
+# focus the child container
+#bindsym $alt+d focus child
+
+## reload the configuration file
+bindsym $alt+Shift+c reload
+# restart i3 inplace (preserves your layout/session, can be used to upgrade i3)
+bindsym $alt+Shift+r restart
+# exit i3 (logs you out of your X session)
+bindsym $alt+Shift+Escape exec "i3-nagbar -t warning -m 'You pressed the exit shortcut. Do you really want to exit i3? This will end your X session.' -b 'Yes, exit i3' 'i3-msg exit'"
+
+# resize window (you can also use the mouse for that)
+mode "resize" {
+        bindsym l resize shrink width 10 px or 10 ppt
+        bindsym j resize grow height 10 px or 10 ppt
+        bindsym k resize shrink height 10 px or 10 ppt
+        bindsym h resize grow width 10 px or 10 ppt
+
+        # back to normal: Enter or Escape
+        bindsym Return mode "default"
+        bindsym Escape mode "default"
+}
+
+bindsym $alt+r mode "resize"
+
+##
+## Programs
+##
+bindsym $win+c exec --no-startup-id chromium %U
+bindsym $win+s exec --no-startup-id spotify
+bindsym $win+e exec --no-startup-id subl
+bindsym $win+o exec --no-startup-id lxappearance
+bindsym $win+t exec --no-startup-id xfce4-taskmanager
+bindsym $win+w exec --no-startup-id wireshark
+bindsym $win+v exec --no-startup-id vlc
+bindsym $win+g exec --no-startup-id gimp
+bindsym $win+n exec --no-startup-id nautilus
+bindsym $win+l exec --no-startup-id libreoffice
+bindsym $win+Return exec termite
+bindsym $win+f exec --no-startup-id nitrogen
+
+# Start i3bar to display a workspace bar (plus the system information i3status
+# finds out, if available)
+#bar {
+#        status_command i3status
+#}
+
+

@@ -1,0 +1,8 @@
+[options]
+font = Source Code Pro 10
+
+[colors]
+foreground = #e8a427
+##background = #eeeeee
+##foreground = f3f0ee
+
