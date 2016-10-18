@@ -15,8 +15,16 @@ exec --no-startup-id nitrogen --restore
 exec xrandr --output HDMI2 --auto --left-of DP3
 exec compton --config /home/user/.config/compton/config -b
 exec conky -c /home/user/.config/conky/lemonbar.conf -d
-exec sh /home/user/.config/lemonbar/config
+exec wget www.dictionary.com/wordoftheday/ -O /home/user/.config/lemonbar/wordoftheday
 exec wget https://ipinfo.io/ip -O /user/home/.config/lemonbar/ipinfo
+exec sh /home/user/.config/lemonbar/time
+exec sh /home/user/.config/lemonbar/ip
+exec sh /home/user/.config/lemonbar/memory
+exec sh /home/user/.config/lemonbar/disk
+exec sh /home/user/.config/lemonbar/word
+exec sh /home/user/.config/lemonbar/uptime
+exec sh /home/user/.config/lemonbar/music
+
 
 ##
 ##Looks
@@ -93,9 +101,21 @@ bindsym $alt+3 exec --no-startup-id subl
 bindsym $alt+v exec --no-startup-id vlc
 bindsym $alt+a exec --no-startup-id lxappearance
 bindsym $alt+4 exec --no-startup-id nitrogen
+bindsym $alt+n exec --no-startup-id nautilus
 bindsym $alt+2 exec --no-startup-id pavucontrol
 bindsym $alt+semicolon exec --no-startup-id rofi -show run
 bindsym $alt+w kill
+bindsym F1 exec pulseaudio-ctl mute
+bindsym F2 exec amixer -c 1 sset PCM 5%-
+bindsym F3 exec amixer -c 1 sset PCM 5%+
+#bindsym F5 exec pulseaudio-ctl previous
+#bindsym F6 exec playerctl play-pause
+#bindsym F7 exec pulseaudio-ctl next
+#bindsym F8 exec pulseaudio-ctl mute
+bindsym F9 exec pulseaudio-ctl mute
+bindsym F10 exec pulseaudio-ctl mute
+bindsym F11 exec pulseaudio-ctl mute
+bindsym F12 exec pulseaudio-ctl mute
 
 ##
 ##Unused

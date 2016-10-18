@@ -1,0 +1,5 @@
+#!/bin/bash
+while true; do
+	echo -e "%{c}$(free -h | awk ' /Mem/ {print $3 "/" $2}') \ue92e $(free -h | awk ' /Swap/ {print $3 "/" $2}')"
+	sleep 1;
+done | lemonbar -p -d -B#c0262626 -F#A0A0A0 -a 1 -g 175x20+2406+10 -r 3 -R#FF993d00 -f "Source Code Pro-9" -f "icomoon-11"

@@ -1,0 +1,5 @@
+#!/bin/bash
+while true; do
+	echo -e "%{c}%{A:chromium www.dictionary.com/wordoftheday/:}\uead9 $(cat /home/user/.config/lemonbar/wordoftheday | awk '/<title>/ {print $8}' | /home/user/.config/lemonbar/uppercase.out)%{A}"
+	sleep 1;
+done | lemonbar -p -d -B#c0262626 -F#A0A0A0 -a 1 -r 3 -g 150x20+3672+10 -R#FF993d00 -f "Source Code Pro-9" -f "Icomoon-11" | bash

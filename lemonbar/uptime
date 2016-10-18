@@ -1,0 +1,5 @@
+#!/bin/bash
+while true; do
+	echo -e "%{c}\uea3a $(cat /proc/uptime | awk '{print $1}' | rev | cut -c 4- | rev | /home/user/.config/lemonbar/simplify.out)"
+	sleep 1;
+done | lemonbar -p -d -B#c0262626 -F#A0A0A0 -g 190x20+3470+10 -r 3 -R#FF993d00 -f "Source Code Pro-9" -f "Icomoon-11"

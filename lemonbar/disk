@@ -1,0 +1,5 @@
+#!/bin/bash
+while true; do
+	echo -e "%{c}\ue964 $(df -h | awk '/sda7/ {print $3"/"$2}')"
+	sleep 60;
+done | lemonbar -p -d -B#c0262626 -F#A0A0A0 -a 1 -g 100x20+2593+10 -r 3 -R#FF993d00 -f "Source Code Pro-9" -f "Icomoon-11"

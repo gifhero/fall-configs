@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      prefix="og: http://opengraphprotocol.org/schema/ fb: http://www.facebook.com/2010/fbml d: http://dictionary.com/2011/dml">
+    <head>
+        <meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+        <base href="http://www.dictionary.com/">
+        <title>Get the Word of the Day - lexicon | Dictionary.com</title>
+        <script type="text/javascript">
+    var cookiesManager = function (){
+        'use strict';
+
+        var persistentValues = [];
+
+        return {
+            getCookieValue : function(name) {
+                var value = null,
+                    cookies = document.cookie,
+                    searchedCookie = cookies.indexOf(" " + name + "=");
+
+                // it's worth to check, if cookie is not first cookie
+                if (searchedCookie === -1) {
+                    var checkFirstCookie = cookies.indexOf(name + "=");
+                    searchedCookie = checkFirstCookie == 0 ? 0 : -1;
+                }
+
+                if (searchedCookie > -1) {
+                    var startPositionOfValue = cookies.indexOf("=", searchedCookie) + 1,
+                        endPositionOfValue = cookies.indexOf(";", searchedCookie);
+
+                    if (endPositionOfValue === -1) {
+                        endPositionOfValue = searchedCookie.length;
+                    }
+
+                    value = cookies.substring(startPositionOfValue,endPositionOfValue);
+                }
+
+                return value;
+            },
+
+            setCookie: function(name, value, hours, domain) {
+                var expires = '',
+                    domain  = domain || UrlHelper.getCurrentDomain();
+
+                if(hours !== undefined) {
+                    var now     = new Date(),
+                        time    = now.getTime();
+
+                    time += (3600 * hours) * 1000;
+                    now.setTime(time);
+
+                    expires = ';expires=' + now.toGMTString();
+                }
+
+                document.cookie =
+                    name + '=' + value +
+                        expires +
+                        ';path=/' +
+                        ';domain=' + domain;
+            },
+
+            /*
+            * This method ensures, that everywhere on the page value of cookie will be the same.
+            * It's important in case of cookie, which value can change across the page.
+            */
+            getPersistentCookieValue: function(name) {
+                if (typeof persistentValues[name] === 'undefined') {
+                    persistentValues[name] = this.getCookieValue(name);
+                    // after reading value, cookie has to be removed
+                    this.setCookie(name, null, -1);
+                }
+
+                return persistentValues[name];
+            }
+        }
+    }();
+</script><script type="text/javascript">
+    /*jslint browser: true */
+
+    var UrlHelper = function() {
+        var COOKIE_DOMAIN_THESAURUS     = '.thesaurus.com';
+        var COOKIE_DOMAIN_DICTIONARY    = '.dictionary.com';
+        var COOKIE_DOMAIN_REFERENCE     = '.reference.com';
+
+        var domain = null;
+        var currentURL = null;
+        var spanidsUrl = null;
+
+        function getSpanidsUrl(bid, sid, currentDomain) {
+            var url     = 'http://';
+            var source  = '';
+
+            if(currentDomain == COOKIE_DOMAIN_DICTIONARY) {
+                url += 'spanids.reference.com/?';
+                source = 'd';
+            } else if (currentDomain == COOKIE_DOMAIN_REFERENCE){
+                url += 'spanids.dictionary.com/?';
+                source = 'r';
+            } else {
+                url += 'spanids.dictionary.com/?';
+                source = 't';
+            }
+
+            url += 'bid=' + bid + '&asid=' + sid + '&bidnew=1&asidnew=1&source=' + source + '&site=app';
+
+
+            return url;
+        }
+
+        function getCurrentDomain() {
+            var host = window.location.host;
+            var value = "";
+            if(host.indexOf(COOKIE_DOMAIN_THESAURUS) > -1) {
+                value = COOKIE_DOMAIN_THESAURUS;
+            } else if(host.indexOf(COOKIE_DOMAIN_DICTIONARY) > -1) {
+                value = COOKIE_DOMAIN_DICTIONARY;
+            } else if(host.indexOf(COOKIE_DOMAIN_REFERENCE) > -1){
+                value = COOKIE_DOMAIN_REFERENCE;
+            }
+
+            return value;
+        }
+
+        return {
+            getCurrentDomain : function() {
+                if(domain === null) {
+                    domain = getCurrentDomain();
+                }
+                return domain;
+            },
+
+            getCurrentDomainFromRequest : function() {
+                return window.location.host;
+            },
+
+            getCurrentUrl : function() {
+                if(currentURL === null) {
+                    currentURL = window.location.protocol + "//" + window.location.host + "" + window.location.pathname;
+                }
+                return currentURL;
+            },
+
+            getSpanidsUrl : function(bid, sid, domain) {
+                if(spanidsUrl === null) {
+                    spanidsUrl = getSpanidsUrl(bid, sid, domain);
+                }
+
+                return spanidsUrl;
+            }
+        }
+    }();
+</script><script type="text/javascript">
+    var BidSidGenerator = (function () {
+        'use strict';
+        var COOKIE_NAME_BID = 'bid',
+            COOKIE_NAME_SID = 'sid',
+            COOKIE_NAME_SPANIDS = 'spanids',
+            COOKIE_BID_EXPIRES = 17520, //two years
+            COOKIE_SID_EXPIRES = 0.5, //half an hour
+            bidCookieValue = null,
+            sidCookieValue = null,
+            bidCookieCreated = false,
+            sidCookieCreated = false,
+            spanIdsCookiePresent = false;
+
+        // generates value of bid/sid cookie
+        function generateCookieValue() {
+            var max = 999999,
+                min = 100000,
+                rand = Math.floor(Math.random() * (max - min)) + min,
+                time = new Date().getTime();
+
+            return rand + "-" + time;
+        }
+
+        // sets value of spanIdsCookiePresent attribute to true and delete spanids cookie,
+        // if cookie exist and have appropriate value
+        function processSpanIdsCookie() {
+            var spanIdsValue = cookiesManager.getCookieValue(COOKIE_NAME_SPANIDS);
+
+            if(spanIdsValue === '1') {
+                cookiesManager.setCookie(COOKIE_NAME_SPANIDS, 0, -1); //removes spanids cookie
+                spanIdsCookiePresent = true;
+            }
+
+            return false;
+        }
+
+        return {
+            init: function () {
+                bidCookieValue  = cookiesManager.getCookieValue(COOKIE_NAME_BID);
+                sidCookieValue  = cookiesManager.getCookieValue(COOKIE_NAME_SID);
+
+                if (bidCookieValue == null || bidCookieValue.length == 0) {
+                    bidCookieValue = generateCookieValue();
+                    cookiesManager.setCookie(COOKIE_NAME_BID, bidCookieValue, COOKIE_BID_EXPIRES);
+                    bidCookieCreated = true;
+                }
+
+                if (sidCookieValue == null || sidCookieValue.length == 0) {
+                    sidCookieValue = generateCookieValue();
+                    sidCookieCreated = true;
+                }
+
+                processSpanIdsCookie();
+                cookiesManager.setCookie(COOKIE_NAME_SID, sidCookieValue, COOKIE_SID_EXPIRES);
+            },
+            propagateCookies: function() {
+                if (bidCookieCreated || sidCookieCreated || spanIdsCookiePresent) {
+                    var url = UrlHelper.getSpanidsUrl(bidCookieValue, sidCookieValue, UrlHelper.getCurrentDomain()),
+                        iFrame = '<iframe id="spanids" style="width:1px;height:1px;margin-left:-1;position:absolute;border:none;" src="' + url + '"></iframe>';
+                    document.write(iFrame);
+                }
+            },
+            touchSidCookie: function () {
+                sidCookieValue  = cookiesManager.getCookieValue(COOKIE_NAME_SID);
+                if (sidCookieValue == null || sidCookieValue.length == 0) {
+                    sidCookieValue = generateCookieValue();
+                    sidCookieCreated = true;
+                }
+
+                cookiesManager.setCookie(COOKIE_NAME_SID, sidCookieValue, COOKIE_SID_EXPIRES);
+            },
+            isSidCookieCreated: function () {
+                return sidCookieCreated;
+            },
+            isSpanIdsCookiePresent: function () {
+                return spanIdsCookiePresent;
+            }
+        };
+    }());
+
+    BidSidGenerator.init();
+    BidSidGenerator.propagateCookies();
+</script>
+<script>
+    var DARCI = DARCI || {},
+        u = "http://track.dictionary.com/main.gif?ev=p&ct=today&pn=dict-wordoftheday&st=dict&ab=&dc=desktop",
+        s = location.search.match(new RegExp('[\?\&]s=([^\&]*)(\&?)', 'i')),
+        ms = (typeof ms === 'undefined') ? cookiesManager.getCookieValue('mseg') || "" : ms,
+
+        /**
+         * Because this file is added only in case when CSL is enabled,
+         * we can be sure cookieManager will be available.
+         */
+        refQuery = cookiesManager.getPersistentCookieValue('ReferrerQuery'),
+        query, orgQuery;
+
+    DARCI.SearchBoxClickLinkId = '59wn52';
+
+    
+
+    if (s != null && s[1]) {
+        if (s[1] == 't' || s[1] == 'ts' || s[1] == 'tn') {
+            var ev = u.indexOf('ev=');
+            if (ev !== -1) {
+                ev = ev + 3;
+                u = u.slice(0, ev) + 'c' + u.slice(ev) + '&cl=59wn52&sc=1';
+                u = u.replace('%25%25REFQUERY%25%25', refQuery);
+            }
+        }
+    }
+
+    new Image().src = u + "&ms=" + ms + "&rf=" + encodeURIComponent(document.referrer) + "&cb=" + Math.floor((Math.random() * 899999999) + 100000000);
+</script>
+<script type="text/javascript">
+    var src = null;
+    </script><meta property="fb:admins" content="100000304287730;109125464873" /><meta property="og:site_name" content="Dictionary.com" /><meta property="og:image" content="http://static.sfdict.com/static/wotd/tiles/20161016_lexicon.png" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" /><meta property="title" content="Get the Word of the Day - lexicon | Dictionary.com" /><meta property="description" content="Learn more about lexicon, its definition, etymology and more. Join over 19 million fans who boost their vocabulary every day." /><meta property="fb:app_id" content="127444090629600" /><meta property="og:title" content="lexicon Word of the Day | Dictionary.com" /><meta property="og:description" content="Today's Word of the Day is lexicon. Learn its definition, pronunciation, etymology and more. Join over 19 million fans who boost their vocabulary every day." /><meta property="og:url" content="http://www.dictionary.com/wordoftheday/2016/10/16/lexicon" /><link rel="shortcut icon" href="http://static.sfdict.com/dcom/favicon.ico" /><link rel="search" type="application/opensearchdescription+xml" href="http://www.dictionary.com/opensearch_desc.xml" title="Dictionary.com" /><link rel="publisher" href="https://plus.google.com/117428481782081853923" /><link rel="canonical" href="http://www.dictionary.com/wordoftheday/" /><link rel="prev" href="http://www.dictionary.com/wordoftheday/2016/10/15/ignominy" /><link rel="stylesheet" href="http://www.dictionary.com/drc/css/combinedWOTD-88249.css" type="text/css" media="all" /><script type="text/javascript">
+    var searchURL = "http://www.dictionary.com/browse/%40%40queryText%40%40?s=t";var pageName = "dict-wordoftheday";</script>
+<script type="text/javascript">
+    var UserController = function() {
+        var USER_STATUS_LOGGED_IN = 'L';
+        var USER_STATUS_NOT_LOGGED = 'N';
+
+        var USER_UNDER_13 = 'Y';
+        var USER_OVER_13 = 'N';
+
+        var COOKIE_NAME_SESS = 'sess';
+        var COOKIE_NAME_FAV = 'fav';
+        var COOKIE_NAME_SUPERSESS = 'ss';
+
+        var PREMIUM_STATUS_VALUE = 9;
+        var FAV_COOKIE_PREMIUM_STATUS_KEY = 0;
+        var FAV_COOKIE_FAV_COUNT_KEY = 1;
+        var FAV_COOKIE_USER_UNDER_13_KEY = 2;
+
+        var isLoggedIn = null;
+        var isPremium = null;
+        var isSuperSess = null;
+        var favNumber = null;
+        var isUnder13 = null;
+        var displayAds = null;
+
+        /**
+         * Checking if user is under 13 using value from fav cookie
+         * @returns {boolean}
+         */
+        function checkIsUserUnder13() {
+            if (isLoggedIn !== true) {
+                return false;
+            }
+
+            var isUnder13 = USER_OVER_13;
+            var favCookieValue = cookiesManager.getCookieValue(COOKIE_NAME_FAV);
+
+            if(favCookieValue != null) {
+                favCookieValue = decodeURIComponent(favCookieValue);
+                isUnder13 = favCookieValue.split('|')[FAV_COOKIE_USER_UNDER_13_KEY];
+            }
+
+            return isUnder13 === USER_UNDER_13;
+        }
+
+        function checkIsUserLoggedIn() {
+            var userStatus = USER_STATUS_NOT_LOGGED;
+            var sessCookieValue = cookiesManager.getCookieValue(COOKIE_NAME_SESS);
+
+            if(sessCookieValue != null) {
+                userStatus = sessCookieValue.charAt(0);
+            }
+
+            return userStatus === USER_STATUS_LOGGED_IN;
+        }
+
+        function checkIfUserIsPremium() {
+            var premiumStatus = null;
+            var favCookieValue = cookiesManager.getCookieValue(COOKIE_NAME_FAV);
+
+            if(favCookieValue != null) {
+                favCookieValue = decodeURIComponent(favCookieValue);
+                premiumStatus = favCookieValue.split('|')[FAV_COOKIE_PREMIUM_STATUS_KEY];
+            }
+
+            return premiumStatus == PREMIUM_STATUS_VALUE;
+        }
+
+        function getFavNum() {
+            var count = 0;
+            var favCookieValue = cookiesManager.getCookieValue(COOKIE_NAME_FAV);
+
+            if(favCookieValue != null) {
+                favCookieValue = decodeURIComponent(favCookieValue);
+                count = favCookieValue.split('|')[FAV_COOKIE_FAV_COUNT_KEY];
+            }
+
+            return count;
+        }
+
+
+        /**
+         * Checking super session cookie and calling ajax endpoint if cookie exists
+         * @returns {boolean}
+         */
+        function checkIfUserHasSuperSession() {
+            // get ss cookie value
+            var superSessionCookieValue = cookiesManager.getCookieValue(COOKIE_NAME_SUPERSESS);
+
+            // if there is ss cookie then make ajax (cors) call to check ss cookie and get response on callback
+            if(superSessionCookieValue !== null){
+
+                var xhr = createCORSRequest('GET', 'http://app.dictionary.com/supersession/check/' + superSessionCookieValue);
+
+                if (xhr){
+                    // Define a callback function
+                    xhr.onload = function(){
+                        var responseData = xhr.responseText;
+                        var data = JSON.parse(responseData);
+                        // process the response.
+
+                        // if response is null then do nothing
+                        if(data == null) {
+                            // do nothing
+                        } else {
+                            // otherwise set the session cookie
+                            cookiesManager.setCookie("sess", data['sessionCookie']);
+
+                            // change header appropriately
+                            changeBodyClassNameForUser();
+                        }
+                    };
+
+                    // Send request
+                    xhr.send();
+                }
+
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        /**
+         * A method to create cors request
+         * @param method
+         * @param url
+         * @returns {XMLHttpRequest}
+         */
+        function createCORSRequest(method, url) {
+            var xhr = new XMLHttpRequest();
+            if ("withCredentials" in xhr) {
+
+                // Check if the XMLHttpRequest object has a "withCredentials" property.
+                // "withCredentials" only exists on XMLHTTPRequest2 objects.
+                xhr.open(method, url, true);
+
+            } else if (typeof XDomainRequest != "undefined") {
+
+                // Otherwise, check if XDomainRequest.
+                // XDomainRequest only exists in IE, and is IE's way of making CORS requests.
+                xhr = new XDomainRequest();
+                xhr.open(method, url);
+
+            } else {
+
+                // Otherwise, CORS is not supported by the browser.
+                xhr = null;
+
+            }
+
+            return xhr;
+        }
+
+        /**
+         * Checking user status and setting correct body className for user
+         */
+        function changeBodyClassNameForUser() {
+            if(isPremium)
+                document.body.className+=' premium';
+            if(isLoggedIn)
+                document.body.className+=' loggedin';
+            if(isUnder13)
+                document.body.className+=' isUnder13';
+        }
+
+        return {
+
+            initHead: function() {
+                isLoggedIn = checkIsUserLoggedIn();
+                isPremium = checkIfUserIsPremium();
+                isUnder13 = checkIsUserUnder13();
+            },
+
+            initBody: function(){
+                // on initialization check user status and change append body class name accordingly
+                changeBodyClassNameForUser();
+
+                // if the user is not logged in then check to see if the user has an ss cookie
+                if(isLoggedIn !== true) {
+                    // call function responsible for checking ss cookie and calling ajax endpoint
+                    isSuperSess = checkIfUserHasSuperSession();
+                }
+            },
+
+            isLoggedIn : function() {
+                return isLoggedIn;
+            },
+
+            isPremium : function() {
+                return isPremium
+            },
+
+            getFavNumber : function() {
+                if(favNumber === null) {
+                    favNumber = getFavNum();
+                }
+                return favNumber;
+            },
+
+            isUnder13 : function() {
+                return isUnder13;
+            },
+
+            shouldDisplayAds: function() {
+                if(displayAds === null) {
+                    displayAds = !isPremium && !checkIsUserUnder13();
+                }
+                return displayAds;
+            }
+        }
+
+
+    }();
+    UserController.initHead();
+</script>
+<script type="text/javascript">
+var adStatus = {
+    spotsCount: 2,
+    renderedSpots: [],
+    renderedSpotsCount: 0,
+    displayedSpots: [],
+    set: function(name, size) {
+        this.renderedSpots[name] = {
+            size: size
+        };
+    },
+    get: function(name) {
+        return this.renderedSpots[name];
+    },
+    getSlotKey: function(slot) {
+        var slotKey;
+        for (slotKey in googletag.slots) {
+            if(googletag.slots[slotKey] == slot) {
+                break;
+            }
+        }
+        return slotKey;
+    },
+    adsLoaded: function() {
+        return this.renderedSpotsCount >= this.spotsCount;
+    }
+};
+
+
+var handleSlotRender = function(data) {
+    var key = adStatus.getSlotKey(data.slot);
+    adStatus.set(key, data.size);
+    adStatus.renderedSpotsCount += 1;
+    };
+</script><script type="text/javascript">
+    "use strict";
+
+    var adStart = Date.now(),
+        OX_dfp_ads = [["/23219321/iac.dict.dictry.dw/wotd/homepage/channel",["728x90","970x90"],"leaderboard-1",{'pos':'top','pos2':'728x90_1','adCount':'leaderboard_1',}],["/23219321/iac.dict.dictry.dw/wotd/homepage/channel",["300x250"],"medrec-1",{'pos':'top','pos2':'300x250_1','adCount':'medrec_1',}],],
+        attachScriptAsync, targetingComplete ,oxDone,
+        gptCallIntiated = false,
+        completedTargeting = {},
+        gptApp = gptApp || {},
+        googletag = googletag || {},
+        targetingEvtResponseTime = [],
+        gptLoaded = false,
+        isBlocking = false;
+
+    gptApp.ads = gptApp.ads || [];
+    googletag.cmd = googletag.cmd || [];
+
+    attachScriptAsync = function(scriptInfo, callback) {
+
+        /* Method to inject script dynamically to have async support */
+
+        var tag = document.createElement("script"),
+            p, node = document.getElementsByTagName("script")[0];
+
+        tag.async = true;
+        tag.onload = tag.onerror = function() {
+            typeof callback === 'function' && callback()
+        }
+
+        for (p in scriptInfo) {
+            if (scriptInfo.hasOwnProperty(p) && p != "src") {
+                tag[p] = scriptInfo[p];
+            }
+        }
+        tag.src = scriptInfo.src;
+        node.parentNode.insertBefore(tag, node);
+    };
+
+    gptApp.renderAds = function() {
+
+        /* Render ad slot display after all targeting setup Adslots are pushed into gptApp array  */
+        var len = gptApp.ads.length;
+        for (var i = 0 ; i < len ; i++) {
+            gptApp.ads[i]();
+        }
+
+        gptApp.ads.push = function(fn) {
+            if ("function" === typeof fn) {
+                setTimeout(fn, 0);
+            }
+        };
+    };
+
+    targetingComplete = function(event) {
+        // enable and render ads for GPT services call that now all targeting finished
+        completedTargeting[event] = true;
+
+        if(!gptCallIntiated ) {
+            // Measuring Each target event time to calculate timeout
+            targetingEvtResponseTime.push(event+"|"+(Date.now() - adStart));
+
+            if ((completedTargeting.lot && completedTargeting.amz && completedTargeting.ox) || event == "fallback") {
+                gptCallIntiated = true;
+                googletag.cmd.push(function(){
+                    googletag.enableServices();
+                    googletag.pubads().setTargeting("perf", targetingEvtResponseTime);
+                });
+                gptApp.renderAds();
+            }
+        }
+    };
+
+    oxDone = function(events) {
+        /* Global Callback Function invoked by OpenX to inform price support */
+        googletag.cmd.push(function() {
+            //OPEN X GPT targeting Params
+            try {
+                OX.dfp_bidder.setOxTargeting(googletag.pubads().getSlots());
+            } catch (e) {}
+        });
+        targetingComplete("ox");
+    };
+
+    // Google Publisher Tag
+    attachScriptAsync({ src: "//www.googletagservices.com/tag/js/gpt.js"  }, function () {
+        if (typeof window.DARCI !== 'undefined' && typeof window.DARCI.gptLoadedCallback === 'function')
+            window.DARCI.gptLoadedCallback();
+    });
+
+    // AMAZON Bidder Tag
+    attachScriptAsync({
+        src: "//c.amazon-adsystem.com/aax2/amzn_ads.js",
+        onload : function () {
+            try {
+                amznads.getAdsCallback('3067', function(){
+                    googletag.cmd.push(function() {
+                        // Amazon GPT targeting Params
+                        amznads.setTargetingForGPTAsync('yip4');
+                    });
+                    targetingComplete("amz");
+                }, 1000);
+            } catch (e) { /* ignore */ }
+        }
+    });
+
+    // LOTAME Measurement Tag For Dictionary.com
+    attachScriptAsync({
+        id: "LOTCC_4845",
+        src: "//tags.crwdcntrl.net/c/4845/cc.js?ns=_cc4845",
+        onload: function() {
+            try {
+                _cc4845.add("ctax", "Sites^Dictionary^Desktop Sites^dict^PageName^dict-wordoftheday^^dict-wordoftheday");
+                _cc4845.bcp();
+            } catch (e) {}
+        }
+    });
+
+    // Lotame Audience Tag for IAC Network
+    attachScriptAsync({
+        src: "//ad.crwdcntrl.net/5/c=4736/pe=y/var=ccauds",
+        onload :function() {
+            googletag.cmd.push(function() {
+                // Lotame GPT targeting Params
+                var dartCC, lpid, ltpid, cci, audience;
+                if (typeof(ccauds) != 'undefined' && ccauds.Profile) {
+                    dartCC = [];
+                    lpid = (typeof(ccauds.Profile.pid) != 'undefined') ? ccauds.Profile.pid : "";
+                    ltpid = (typeof(ccauds.Profile.tpid) != 'undefined') ? ccauds.Profile.tpid : "";
+                    audience = ((ccauds.Profile.Audiences || {})
+                        .Audience) || [];
+                    for (cci = 0; cci < audience.length; cci++) {
+                        dartCC.push(audience[cci].abbr);
+                    }
+                    googletag.pubads().setTargeting("lpid", lpid).setTargeting("ltpid", ltpid).setTargeting("lseg", dartCC);
+                }
+            });
+            targetingComplete("lot");
+        }
+    });
+
+    // OPEN X Bidder Tag
+    attachScriptAsync({
+        src: "//ox-d.ask.servedbyopenx.com/w/1.0/jstag?nc=23219321-dictionary",
+        onload: function() {
+            setTimeout(function() {
+                if (!('OX' in window)) {
+                    targetingComplete("ox");
+                }
+            }, 500);
+        }
+    });
+
+    // Fallback Method to invoke ad after 1000 miliseconds irrespective of targeting scripts
+
+    setTimeout(function() {
+        targetingComplete("fallback");
+    }, 1500);
+
+</script>
+
+<script>
+    function getRefValue(referrer) {
+        if(referrer.indexOf('dictionary.com') == -1 && referrer.indexOf('thesaurus.com') == -1 && referrer.indexOf('reference.com') == -1) {
+            return 'organic';
+        }
+        return 'direct';
+    }
+    function getRPV() {
+        return Math.floor((Math.random()*100)+1).toString();
+    }
+    function getDCRefValue() {
+        return encodeURIComponent(window.location.href);
+    }
+    function getDayofWeek() {
+        return new Date().getDay().toString();
+    }
+    
+    googletag.slots = {};
+    googletag.cmd.push(function() {
+
+        googletag.slots["leaderboard-1"] = googletag.defineSlot("/23219321/iac.dict.dictry.dw/wotd/homepage/channel", [[728,90],[970,90]], "leaderboard-1").addService(googletag.pubads()).setTargeting("pos", "top").setTargeting("pos2", "728x90_1").setTargeting("adCount", "leaderboard_1").setTargeting("tx1", "wotd").setTargeting("tx2", "homepage").setTargeting("ptype", "channel").setTargeting("wotdpage", "1");googletag.slots["medrec-1"] = googletag.defineSlot("/23219321/iac.dict.dictry.dw/wotd/homepage/channel", [300,250], "medrec-1").addService(googletag.pubads()).setTargeting("pos", "top").setTargeting("pos2", "300x250_1").setTargeting("adCount", "medrec_1").setTargeting("tx1", "wotd").setTargeting("tx2", "homepage").setTargeting("ptype", "channel").setTargeting("wotdpage", "1");
+        googletag.pubads().setTargeting("ref", getRefValue(document.referrer)).setTargeting("lang","en").setTargeting("rpv", getRPV()).setTargeting("dc_ref", getDCRefValue()).setTargeting("loc", "US").setTargeting("ld", "0").setTargeting("dow", getDayofWeek());
+
+        var get_request_identifier = (function () {
+                return Math.random().toString(36).substr(2)
+            })(),
+            get_modified_page_url = (function () {
+                sep = window.location.search.length >= 0 && window.location.href.indexOf("?") !== -1 ? "&" : "?";
+                return window.location.href + sep + "rquid=" + get_request_identifier
+            })();
+
+        googletag.pubads().setTargeting("rquid",get_request_identifier);
+        googletag.pubads().setTargeting("page_url",get_modified_page_url);
+
+        
+                var adtest = location.search.match(new RegExp("[\?\&]adtest=([^\&]*)(\&?)","i"));
+        if(adtest != null && adtest[1] != "" ){
+            googletag.pubads().setTargeting("adtest",adtest[1]);
+        }
+
+                        googletag.pubads().enableAsyncRendering();
+                
+        googletag.pubads().addEventListener('slotRenderEnded', handleSlotRender);
+    });
+</script>
+<script type='text/javascript'>
+    window.dataLayer = window.dataLayer || [];
+
+    dataLayer.push({
+        'event': 'pageview',
+        'device': 'Desktop',
+        'pageName': 'dict-wordoftheday',
+        'LDid': '0',
+        'mseg': cookiesManager.getCookieValue("mseg"),
+        'sessionId': cookiesManager.getCookieValue("sid"),
+        'browserId': cookiesManager.getCookieValue("bid")    });
+</script><!-- Begin Quantcast Tag, part 1 -->
+<script type="text/javascript"> 
+  
+  var _qevents = _qevents || [];
+
+  (function() {
+   var elem = document.createElement('script');
+
+   elem.src = (document.location.protocol == "https:" ? "https://secure" : "http://edge") + ".quantserve.com/quant.js";
+   elem.async = true;
+   elem.type = "text/javascript";
+   var scpt = document.getElementsByTagName('script')[0];
+   scpt.parentNode.insertBefore(elem, scpt);  
+  })();
+</script>
+<!-- End Quantcast Tag, part 1 -->
+<!-- Begin comScore Tag -->
+<script>
+if(typeof UserController === "undefined" || !UserController.isUnder13()) {
+    var _comscore = _comscore || [];
+    _comscore.push({c1: "2", c2: "6034776", c3: "", c4: (new String(window.location)).replace(/\?.*$/, "")});
+    (function () {
+        var s = document.createElement("script"), el = document.getElementsByTagName("script")[0];
+        s.async = true;
+        s.src = (document.location.protocol == "https:" ? "https://sb" : "http://b") + ".scorecardresearch.com/beacon.js";
+        el.parentNode.insertBefore(s, el);
+    })();
+}
+</script>
+<noscript>
+    <img src="http://b.scorecardresearch.com/p?c1=2&c2=6034776&cv=2.0&cj=1" />
+</noscript>
+<!-- End comScore Tag -->
+    </head>
+    <body class="desktop">
+            <!-- Google Tag Manager -->
+<noscript>
+    <iframe src="//www.googletagmanager.com/ns.html?id=GTM-TXC5GP" height="0" width="0" style="display:none;visibility:hidden">
+    </iframe>
+</noscript>
+<script>
+    (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+        new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;
+        j.src= '//www.googletagmanager.com/gtm.js?id='+i+dl;
+        f.parentNode.insertBefore(j, f);
+    })(window,document,'script','dataLayer','GTM-TXC5GP');
+</script>
+<!-- End Google Tag Manager -->                <div id="fb-root"></div>
+            <script type="text/javascript">
+    UserController.initBody();
+</script>
+<script type="text/javascript">
+        /**
+     * Redirects user to address from parameter
+     *
+     * @param url
+     * @returns {boolean}
+     */
+    function submitForm(url) {
+        var queryText = document.getElementById('q').value || 'search';
+
+        queryText = encodeURIComponent(queryText);
+
+        url = url.replace('%40%40queryText%40%40', queryText);
+
+                location.href = url;
+        return false;
+    }
+
+    function prepareSearchBox(el) {
+        var dataTerm = el.getAttribute('data-term');
+        var value = el.value;
+        if (!(/(iPad|iPhone|iPod)/g.test(navigator.userAgent))) {
+            el.focus();
+            if (dataTerm == value) {
+                el.select();
+            }
+        }
+    }
+</script>
+<nav class="ham-nav dictionary-nav">
+    <ul>
+        <li class="ham-main-menu"><a href="http://www.dictionary.com/" data-linkid="lxabec" >Dictionary.com</a></li>
+        <li>
+            <ul class="ham-submenu">
+                <li><a href="http://www.dictionary.com/wordoftheday/" data-linkid="1498ik" >Word <i class="wotd-italic">of the</i>  Day</a></li>
+                <li><a href="http://translate.reference.com/" data-linkid="au3zd1" >Translate</a></li>
+                <li><a href="http://www.dictionary.com/fun" data-linkid="yp2k17" >Games</a></li>
+                <li><a href="http://blog.dictionary.com/" data-linkid="t6ehki" >Blog</a></li>
+            </ul>
+        </li>
+                    <li class="ham-main-menu"><a href="http://www.thesaurus.com/" data-linkid="c1drjk" >Thesaurus.com</a></li>
+                <li class="ham-main-menu">
+            <a href="http://app.dictionary.com/favorites">Favorites
+                <span class="dicticon-header-favourites-star"></span>
+                <span class="ham-favourites-number"></span>
+            </a>
+        </li>
+    </ul>
+</nav>
+<button class="dicticon-hamburger-menu slide-element"></button>
+<header class="js-header dictionary-header">
+    <div class="header-nav-row">
+        <ul class="header-main-nav">
+                            <li class="nav-active">
+                    <a href="http://www.dictionary.com/" data-linkid="tqks0v" >Dictionary.com</a>
+                </li>
+                            <li >
+                    <a href="http://www.thesaurus.com/" data-linkid="qxnxzj" >Thesaurus.com</a>
+                </li>
+                    </ul>
+        <ul class="header-login-nav">
+                            <li class="user-logged-in account"><a href="http://app.dictionary.com/users/settings">My Account</a></li>
+                <li class="user-logged-in"><a href="http://app.dictionary.com/logout?logindest=http%3A%2F%2Fwww.dictionary.com%2Fwordoftheday%2F">Log Out</a></li>
+                <li class="user-logged-out"><a rel="nofollow" href="http://app.dictionary.com/login?source=header_core&amp;logindest=http%3A%2F%2Fwww.dictionary.com%2Fwordoftheday%2F">Log In</a></li>
+                    </ul>
+
+            <div class="header-social-links">
+            <span class="dicticon-header-social-facebook"></span>
+            <span class="dicticon-header-social-twitter"></span>
+            <span class="dicticon-header-social-instagram"></span>
+            <span class="dicticon-header-social-googleplus"></span>
+        </div>
+        <a href="http://www.dictionary.com/apps"  class="header-apps-links" data-linkid="dbvvdc" >        <span class="dicticon-header-app-android"></span>
+        <span class="dicticon-header-app-ios"></span>
+        Try Our Apps
+        </a>
+    </div>
+
+    <div class="header-search-row">
+        <div class="header-wrapper-row">
+            <a href="http://www.dictionary.com/" data-linkid="yg487x" >            <img src="http://www.dictionary.com/drc/img/responsive/dcom-logo-8f31c.png" alt='Dictionary.com'/>
+            </a>
+            <form id="main_search" class="header-search-form" action="http://www.dictionary.com/dic">
+                <div class="header-search-wrapper">
+                    <div class="search-filter-nav">
+                        <span class="dicticon-filter"></span>
+                        <span class="filter-item-active" data-filter-action="http://www.dictionary.com/browse/%40%40queryText%40%40">definitions</span>
+                    </div>
+                    <input type="text"
+                           value=""
+                           autoComplete="off"
+                           autocapitalize="off"
+                           autocorrect="off"
+                           name="q"
+                           class="search-input transparent-text"
+                           id="q"
+                           data-term="">
+                                        <input type="hidden" name="s" value="t"/>
+                    <button type="submit" id="search-submit" class="dicticon-search-submit" value=""></button>
+                    <ul class="filter-list filter-hidden">
+                                                    <li class="filter-hidden" data-filter="http://www.dictionary.com/browse/%40%40queryText%40%40">definitions</li>
+                                                    <li class="" data-filter="http://www.thesaurus.com/browse/%40%40queryText%40%40">synonyms</li>
+                                                    <li class="" data-filter="http://translate.reference.com/?query=%40%40queryText%40%40">translations</li>
+                                            </ul>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="social-follow-module">
+    <ul class="social-follow-btns">
+        <li>
+            <div class="fb-like-wrapper">
+                <div class="fb-like" data-href="https://www.facebook.com/dictionarycom" data-layout="button_count" data-action="like" data-show-faces="true" data-share="false"></div>
+            </div>
+        </li>
+        <li>
+            <a class="twitter-follow-button" href="https://twitter.com/dictionarycom" data-show-screen-name="false">Follow @dictionarycom</a>
+        </li>
+        <li>
+            <span class="ig-follow" data-id="17031a6e93" data-handle="igfbdotcom" data-count="true" data-size="medium" data-username="false"></span>
+        </li>
+        <li>
+            <div class="g-follow" data-annotation="bubble" data-height="20" data-href="https://plus.google.com/117428481782081853923" data-rel="publisher"></div>
+        </li>
+    </ul>
+    <p>follow Dictionary.com</p>
+</div></header>
+<script type="text/javascript">
+    var DARCI = DARCI || {};
+    DARCI.searchedTerm = typeof DARCI.OQR !== 'undefined' ? DARCI.OQR.getValue() : null;
+    DARCI.searchedTerm = DARCI.searchedTerm !== null ? DARCI.searchedTerm : '';
+
+    document.getElementById('main_search').onsubmit = function(e, url) {
+        // if url parameter wasn't passed submitFrom() is called with default parameter, which is searchURL
+        // searchURL is defined and added as a global js option in controller
+        return submitForm(url || searchURL);
+    }
+
+    prepareSearchBox(document.getElementById('q'));
+
+    cookiesManager.setCookie('ReferrerQuery', DARCI.searchedTerm);
+</script>    <div class="main-leaderboard">
+        <div id="leaderboard-1"><script type="text/javascript">if(typeof UserController !== "undefined" && !UserController.shouldDisplayAds()){document.getElementById("leaderboard-1").parentNode.removeChild(document.getElementById("leaderboard-1"));}else{adStatus.displayedSpots.push("leaderboard-1");gptApp.ads.push( function() {googletag.cmd.push(function() { googletag.display("leaderboard-1");});});}</script></div>    </div>
+
+<div class="branding-wrapper" id="branding-wrapper">
+    <!-- if master day is requested day add h1 for SEO purposes - EN-445 -->
+    <h1>        Word <span class="italic">of the</span> Day
+    </h1></div>
+<div class="main-container">
+    <div>
+        <div class="feed">
+            
+<div id="chunk-0" class="chunk">
+    <div id="wotd-2016-10-16" data-word="lexicon" class="wotd-wrapper wotd-requested wotd-today">        <div>
+            
+<div class="date-wrapper oneClick-disabled">
+    Sunday, <span class="mobile-font-bold">October 16, 2016</span>
+</div>        </div>
+        <div class="smart-box-container oneClick-area">
+            
+
+<div class="tile-wrapper smart-item" data-smartOrder="1" data-cts='{"linkId":"cks7jy","infix":"","domain":"dictionary.com","clkpage":"dict-wordoftheday","clkmod":"wotdm1","clksite":"dict","clkld":0}' data-href='http://www.dictionary.com/browse/'>
+    <div>
+        <div class="tile-image"  data-linkid='cks7jy'>
+            <a href="http://www.dictionary.com/browse/lexicon"
+               class="uploaded">
+                
+<img alt="lexicon" src="http://static.sfdict.com/sizedimage/sizedimage?width=455&height=455&url=http%3A%2F%2Fstatic.sfdict.com%2Fstatic%2Fwotd%2Ftiles%2F20161016_lexicon.png"/>
+            </a>
+        </div>
+        <div class="tile-companion">
+                            <div class="icon">
+                    <div class="audio-wrapper cts-disabled">
+    <audio>
+        <source src="http://static.sfdict.com/staticrep/dictaudio/lunawav/L02/L0218600.ogg" type="audio/ogg">
+        <source src="http://static.sfdict.com/staticrep/dictaudio/L02/L0218600.mp3" type="audio/mpeg">
+    </audio>
+    <div class="speaker"></div>
+</div>                </div>
+            <div class="wotd-social-share" data-placement="definitionbox" data-content-title="today">
+    <a class="share-icon facebook" data-href="http://www.dictionary.com/wordoftheday/2016/10/16/lexicon" href="#"></a>
+    <a class="share-icon twitter" href="https://twitter.com/share?url=http://www.dictionary.com/wordoftheday/2016/10/16/lexicon&text=Word of the Day from @Dictionarycom - lexicon - the vocabulary of a particular language, field, social class, pers..." target="_blank"></a>
+    <a class="share-icon google" href="https://plus.google.com/share?url=http://www.dictionary.com/wordoftheday/2016/10/16/lexicon" onclick="javascript:window.open(this.href, '', 'menubar=no,toolbar=no,resizable=no,scrollbars=no,height=400,width=600');return false"></a>
+            <span  class="ig-follow share-icon instagram" data-id="17031a6e93" data-count="false" data-size="small" data-username="false"></span>
+        <a href="http://www.pinterest.com/pin/create/button/?url=http://www.dictionary.com/wordoftheday/2016/10/16/lexicon&media=http://static.sfdict.com/static/wotd/tiles/20161016_lexicon.png&description=Dictionary.com’s Word of the Day - lexicon - the vocabulary of a particular language, field, social class, person, etc."
+           data-pin-do="buttonPin"
+           class="share-icon pinterest">
+        </a>
+    </div>
+        </div>
+        
+
+<div class="definition-box">
+    <div class="definition-header">
+        <!-- if master day is not requested day then add h1 for SEO purposes to requested day - EN-444 -->
+                    Definitions for <strong>lexicon</strong>
+            </div>
+    <ol class="definition-list definition-wide-desktop-third definition-desktop-second definition-tablet-second">
+                    <li class="first"><span>the vocabulary of a particular language, field, social class, person, etc.</span></li>
+                            <li class="second"><span>a wordbook or dictionary, especially of Greek, Latin, or Hebrew.</span></li>
+                                        <li class="third"><span>inventory or record: <em>unparalleled in the lexicon of human relations</em>.</span></li>
+                        </ol>
+</div>        <div class="tile-subscribe">
+            <div class="tile-form">
+                <form action="" class="subscription-form">
+                    <div class="subscribe-close"></div>
+                    <div class="content">
+                        <p class="phrase">Learn something <br />new every day</p> <br />
+                        <p class="styled-phrase">GET OUR</p> <br />
+                        <label for="POST-name" class="title">Word <i>of the</i> Day email</label>
+                        <div class="email-section">
+                            <input id="POST-name" type="text" name="email" placeholder="email address"><input type="submit" value=" ">
+                        </div>
+                    </div>
+                    <div class="message oneClick-disabled"><span>Thank you</span><span>for signing up</span></div>
+                </form>
+            </div>
+        </div>
+        <div class="tile-change-view oneClick-disabled">
+            Get <span class="light">the</span> Word <span class="italic">of the </span>Day <span class="light">Email</span>
+        </div>
+    </div>
+</div>
+
+            <div class="citation-wrapper smart-item" data-smartOrder="2" data-cts='{"linkId":"a1l6u0","infix":"","domain":"dictionary.com","clkpage":"dict-wordoftheday","clkmod":"wotdm1","clksite":"dict","clkld":0}' data-href='http://www.dictionary.com/browse/'>
+    <div class="citation-context">
+        <div class="citation-header">
+            Citations for <strong>lexicon</strong>
+        </div>
+                    <blockquote>
+                <span>The English <strong>lexicon</strong> is so vast and varied that it is impossible to classify it into neat categories.... The <strong>lexicon</strong> is a particularly sensitive index of historical, social, and technological change.</span>
+                <span class="author">David Crystal, <i><cite>The Cambridge Encyclopedia of the English Language</cite>, 1995</i></span>
+            </blockquote>
+                            <blockquote class="citation-bottom-block">
+                    <span>Whatever the long-term effects of the Occupy movement, protesters have succeeded in implanting “We are the 99 percent,” referring to the vast majority of Americans ... into the cultural and political <strong>lexicon</strong>.</span>
+                    <span class="author">Brian Stelter, <i>"Camps Are Cleared, but '99 Percent' Still Occupies the Lexicon," <cite>New York Times</cite>, November 30, 2011</i></span>
+                </blockquote>
+                        </div>
+</div>            <div class="gpt-content-wrapper smart-item" data-smartOrder="3">
+    <div id="medrec-1"><script type="text/javascript">if(typeof UserController !== "undefined" && !UserController.shouldDisplayAds()){document.getElementById("medrec-1").parentNode.removeChild(document.getElementById("medrec-1"));}else{adStatus.displayedSpots.push("medrec-1");gptApp.ads.push( function() {googletag.cmd.push(function() { googletag.display("medrec-1");});});}</script></div></div>
+            <div class="origin-wrapper smart-item" data-smartOrder="4" data-cts='{"linkId":"a1l6u0","infix":"","domain":"dictionary.com","clkpage":"dict-wordoftheday","clkmod":"wotdm1","clksite":"dict","clkld":0}' data-href='http://www.dictionary.com/browse/'>
+    <div class="origin-context">
+        <div class="origin-header">
+        Origin of <strong>lexicon</strong>
+        </div>
+        <div class="origin-map">
+    <div class="map-area"  data-linkid='a1l6u0'>
+                    <div class="origin-map-language" style="right: 50.705555555556%;top: 37.561111111111%;">
+                <div class="dot dot-right dot-top "></div>
+                <div class="language-name oneClick-disabled">
+                                            <a class="language-name" href="http://www.dictionary.com/browse/medieval-latin">Medieval Latin</a>
+                                    </div>
+            </div>
+                    <div class="origin-map-language" style="left: 51.911111111111%;top: 38.577777777778%;">
+                <div class="dot dot-left dot-top "></div>
+                <div class="language-name oneClick-disabled">
+                                            <a class="language-name" href="http://www.dictionary.com/browse/greek">Greek</a>
+                                    </div>
+            </div>
+            </div>
+</div>
+<div class="origin-timeline">
+    <div class="span" style="left:70.36775106082% ; width:0.70721357850071% ;">
+                    <span class="date start-date"  style="left:-68px;" >1595-1605</span>
+            </div>
+</div>
+        <div class="origin-content">
+            <em>Lexicon</em> finds its roots in the Greek noun <em>léxis</em> meaning "speech, word." It entered English in the late 1500s.        </div>
+    </div>
+</div>
+            <div class="dash-spot dash-spot-md-2 smart-item" data-smartOrder="5">
+    <div  data-imp="uczgc1" data-linkid='uczgc1'>
+                    <div class="title">
+                <a href="http://blog.dictionary.com/making-connections-with-conjunctions/" target="_blank">Discover Our Editors' Picks</a>
+            </div>
+                <div class="dash-spot-image">
+            <a href="http://blog.dictionary.com/making-connections-with-conjunctions/" target="_blank">
+                <img src="http://static.sfdict.com/sizedimage/sizedimage?width=293&height=293&url=http%3A%2F%2Fblog.dictionary.com%2Fwp-content%2Fuploads%2F2016%2F10%2Fconjunction_test.png"/>
+            </a>
+                            <div class="dash-spot-text">
+                    <a href="http://blog.dictionary.com/making-connections-with-conjunctions/" target="_blank">Making Connections With Conjunctions</a>
+                </div>
+                    </div>
+    </div>
+    <div class="wotd-social-share" data-placement="masterspot2" data-content-title="today">
+    <a class="share-icon facebook" data-href="http://blog.dictionary.com/making-connections-with-conjunctions/" href="#"></a>
+    <a class="share-icon twitter" href="https://twitter.com/share?url=http://blog.dictionary.com/making-connections-with-conjunctions/&text=Making%20Connections%20With%20Conjunctions%20%40Dictionarycom%20Blog" target="_blank"></a>
+    <a class="share-icon google" href="https://plus.google.com/share?url=http://blog.dictionary.com/making-connections-with-conjunctions/" onclick="javascript:window.open(this.href, '', 'menubar=no,toolbar=no,resizable=no,scrollbars=no,height=400,width=600');return false"></a>
+    </div>
+</div>
+            <div class="smart-box-sizer"></div>
+        </div>
+    </div>
+    <div>
+        <div class="day-break day-break-bg">
+    <div class="day-break-inner">
+        <form action="" class="day-break-subscription-form">
+            <div class="first-row">
+                <div class='left-part'>Get our </div>
+                <div class='middle-part'>Word <span>of the</span> Day</div>
+                <div class='right-part'>Email</div>
+                <div class="input">
+                    <input id="day-break-subscription-email" type="text" placeholder="email address" name="email"><input id="day-break-subscription-button" type="submit" value="SIGN UP">
+                </div>
+            </div>
+        </form>
+        <div class="message"><span>Thanks</span> for signing up!</div>
+    </div>
+</div>
+
+    </div>
+</div>        </div>
+        <div class="navigation-wrapper">
+                            <div class="navigation-container">
+    
+<div class="search-box wotd-today">
+    <div class="search-title">
+        Search</br>
+        Word <span class="italic"> of the </span> Day
+    </div>
+    <div class="search-box-input">
+        <input type="button" value="" id="datetimepicker">
+        <input type="text" name="sub" value="mm/dd/yyyy" id="datetext">
+    </div>
+</div>
+    <div class="tbw-container">
+        <ul class="tbw-content">
+            <li style='top: 0px' id="bw-2016-10-16" class="active" data-day="2016-10-16">
+                <span class="tbw-date">
+                    Sun.,
+                    Oct.                    16,
+                    2016                </span>
+    <a href="http://www.dictionary.com/wordoftheday/2016/10/16/lexicon">lexicon</a>
+</li><li style='top: 48px' id="bw-2016-10-15"  data-day="2016-10-15">
+                <span class="tbw-date">
+                    Sat.,
+                    Oct.                    15,
+                    2016                </span>
+    <a href="http://www.dictionary.com/wordoftheday/2016/10/15/ignominy">ignominy</a>
+</li><li style='top: 96px' id="bw-2016-10-14"  data-day="2016-10-14">
+                <span class="tbw-date">
+                    Fri.,
+                    Oct.                    14,
+                    2016                </span>
+    <a href="http://www.dictionary.com/wordoftheday/2016/10/14/mutable">mutable</a>
+</li><li style='top: 144px' id="bw-2016-10-13"  data-day="2016-10-13">
+                <span class="tbw-date">
+                    Thu.,
+                    Oct.                    13,
+                    2016                </span>
+    <a href="http://www.dictionary.com/wordoftheday/2016/10/13/hinterland">hinterland</a>
+</li><li style='top: 192px' id="bw-2016-10-12"  data-day="2016-10-12">
+                <span class="tbw-date">
+                    Wed.,
+                    Oct.                    12,
+                    2016                </span>
+    <a href="http://www.dictionary.com/wordoftheday/2016/10/12/opuscule">opuscule</a>
+</li><li style='top: 240px' id="bw-2016-10-11"  data-day="2016-10-11">
+                <span class="tbw-date">
+                    Tue.,
+                    Oct.                    11,
+                    2016                </span>
+    <a href="http://www.dictionary.com/wordoftheday/2016/10/11/bailiwick">bailiwick</a>
+</li><li style='top: 288px' id="bw-2016-10-10"  data-day="2016-10-10">
+                <span class="tbw-date">
+                    Mon.,
+                    Oct.                    10,
+                    2016                </span>
+    <a href="http://www.dictionary.com/wordoftheday/2016/10/10/dilatory">dilatory</a>
+</li>
+        </ul>
+        <div class="marker" style="top: 0px"></div>
+    </div>
+</div>                    </div>
+    </div>
+</div>
+<div class="spinning-wheel pos-bottom">
+    <div class="spinning-wheel-inner">
+        <div class="spinner"></div>
+    </div>
+</div><button class="back-to-top"></button><footer class="footer-thin">
+    <div class="footer-container"  data-linkid='gy27eg'>
+        <div>
+            <ul class="footer-navbar">
+                <li class="footer-navbar-list">
+                    <a href="http://content.dictionary.com/">About</a>
+                </li>
+                <li class="footer-navbar-list">
+                    <a href="http://www.dictionary.com/terms">Terms & Privacy</a>
+                </li>
+            </ul>
+            <div class="footer-copyright">
+                &copy;&nbsp;2016 Dictionary.com, LLC.
+            </div>
+        </div>
+    </div>
+</footer>
+<script type="text/javascript" src="http://app.dictionary.com/js/advertisement.js"></script>
+<script>
+    if (typeof window.canRunAds === 'undefined') {
+        var img = new Image(),
+        url = 'http://track.dictionary.com/main.gif?ev=a&ms=%40%40MSEG%40%40&rf=%40%40REFERRER%40%40&cb=%40%40CACHEBUSTER%40%40&pn=dict-wordoftheday&st=dict&ab=&dc=desktop';
+
+        url = url.replace('%40%40REFERRER%40%40', encodeURIComponent(document.referrer))
+            .replace('%40%40CACHEBUSTER%40%40', Math.floor((Math.random() * 899999999) + 100000000))
+            .replace('%40%40MSEG%40%40', (cookiesManager.getCookieValue('mseg') || ''));
+        img.src = url;
+    }
+</script>
+<script>
+    /*
+     Below immediately function provide support for browsers, which do not support modern standards (https://dom.spec.whatwg.org/)
+     partially taken from: plainjs.com
+    */
+    (function (e) {
+        'use strict';
+        e.matches = e.matches ||
+            e.matchesSelector ||
+            e.webkitMatchesSelector ||
+            e.msMatchesSelector ||
+            function (selector) {
+                var node = this, nodes = (node.parentNode || node.document).querySelectorAll(selector), i = -1;
+                while (nodes[++i] && nodes[i] != node);
+                return !!nodes[i];
+            };
+        e.closest = e.closest || function (css) {
+                var node = this;
+                while (node) {
+                    if (node.matches(css)) return node;
+                    else node = node.parentElement;
+                }
+                return null;
+            };
+        e.hasClass = e.hasClass || function (className) {
+                var node = this;
+                return node.classList ? node.classList.contains(className) : new RegExp('\\b' + className + '\\b').test(node.className);
+            };
+        e.addClass = e.addClass || function (className) {
+                var node = this;
+                if (node.classList) node.classList.add(className);
+                else if (!node.hasClass(node, className)) node.className += ' ' + className;
+            };
+        e.removeClass = e.removeClass || function(className) {
+                var node = this;
+                if (node.classList) node.classList.remove(className);
+                else node.className = node.className.replace(new RegExp('\\b' + className + '\\b', 'g'), '');
+            };
+        e.on = e.on || function (event, selector, callback, context) {
+                var el = context || document;
+                el.addEventListener(event, function (e) {
+                    var found, el = e.target || e.srcElement;
+                    while (el && el.matches && el !== context && !(found = el.matches(selector))) el = el.parentElement;
+                    if (found) callback.call(this, el, e);
+                });
+            };
+    }(Element.prototype));
+</script><!-- Begin Quantcast Tag, part 2 -->
+<script type="text/javascript">
+if (typeof UserController === "undefined" || !UserController.isUnder13()) {
+    _qevents.push({qacct: "p-51zXP5Cc9sxvQ"});
+}
+</script>
+<noscript>
+<div style="display: none;"><img src="//pixel.quantserve.com/pixel/p-51zXP5Cc9sxvQ.gif" height="1" width="1" alt="Quantcast"/></div>
+</noscript>
+<!-- End Quantcast Tag, part 2 --><script>
+    /*global $, pageName, window */
+
+    var BCT = (function () {
+        'use strict';
+
+        var webTrackURL = 'http://track.dictionary.com/main.gif?ev=c&cl=%40%40LINKIDS%40%40&ci=%40%40ITEM%40%40&co=%40%40ORDINAL%40%40&ms=%40%40MSEG%40%40&ds=%40%40DESTINATION%40%40&rf=%40%40REFERRER%40%40&cb=%40%40CACHEBUSTER%40%40&pn=%40%40PAGENAME%40%40&st=dict&ab=&dc=desktop',
+            query, originalQuery;
+
+        
+        /**
+         * Returns data, which will be logged.
+         *
+         * NOTE:
+         * Possible, that empty array will be returned.
+         */
+        function getData(target) {
+            var ctsData,
+                closestLinkIDElement,
+                data = {};
+
+            ctsData = JSON.parse(target.getAttribute('data-cts'));
+            if (ctsData !== null) {
+                data.linkId = ctsData.linkId;
+                data.item = "";
+                data.ordinal = ctsData.ordinal;
+            } else {
+                closestLinkIDElement = target.closest('[data-linkid]');
+                if (null !== closestLinkIDElement && null === target.closest('[data-type]')) {
+                    data.linkId = closestLinkIDElement.getAttribute('data-linkid');
+                    data.item = getItem(target);
+                    data.ordinal = getOrdinal(target, closestLinkIDElement);
+                }
+            }
+            return data;
+        }
+
+        function getItem(target) {
+            var closestWithItem = target.closest('[data-item]'),
+                item = '';
+
+            if (null !== closestWithItem) {
+                item = target.textContent.trim();
+            }
+
+            return item;
+        }
+
+        function getOrdinal(target, dataItem) {
+            var closestWithOrdinal,
+                value = '';
+
+            if (dataItem !== target) { // if element with linkid is not the anchor itself we are going deeper
+                closestWithOrdinal = target.closest('[data-ordinal]');
+                if (null !== closestWithOrdinal) {
+                    var links = closestWithOrdinal.querySelectorAll("a"),
+                        len = links.length;
+
+                    for (var i = 0; i < len; i++) {
+                        if (target === links[i]) {
+                            value = i + 1;
+                        }
+                    }
+                }
+            }
+            return value;
+        }
+
+        /**
+         * Returns data, which are generated always in the same way
+         */
+        function getCommonData(destination) {
+            var data = {};
+            data.cacheBuster = Math.floor((Math.random() * 899999999) + 100000000);
+            data.pageName = pageName;
+            data.mseg = getMsegValue();
+            data.destination = encodeURIComponent(destination);
+            return data;
+        }
+
+        /**
+         * Redirects user to destination
+         */
+        function redirectToDest(location) {
+            window.location = location;
+        }
+
+        /**
+         * Returns value of cookie based on name
+         */
+        function getCookieByName(name) {
+            var value = null,
+                cookies = document.cookie,
+                searchedCookie = cookies.indexOf(" " + name + "=");
+
+            // it's worth to check, if cookie is not first cookie
+            if (searchedCookie === -1) {
+                var checkFirstCookie = cookies.indexOf(name + "=");
+                searchedCookie = checkFirstCookie === 0 ? 0 : -1;
+            }
+
+            if (searchedCookie > -1) {
+                var startPositionOfValue = cookies.indexOf("=", searchedCookie) + 1,
+                    endPositionOfValue = cookies.indexOf(";", searchedCookie);
+
+                if (endPositionOfValue === -1) {
+                    endPositionOfValue = searchedCookie.length;
+                }
+
+                value = cookies.substring(startPositionOfValue,endPositionOfValue);
+            }
+
+            return value;
+        }
+
+        /**
+         * Returns value of mseg cookie
+         */
+        function getMsegValue() {
+            var msegVal;
+            if (typeof cookiesManager !== "undefined") {
+                msegVal = cookiesManager.getCookieValue("mseg");
+            } else {
+                msegVal = getCookieByName("mseg");
+            }
+
+            return msegVal || "";
+        }
+
+        /**
+         * Renders WebTrack URL
+         */
+        function renderWebTrackURL(data, destination) {
+            var commonData = getCommonData(destination);
+            return webTrackURL.replace('%40%40REFERRER%40%40', encodeURIComponent(document.referrer))
+                .replace('%40%40LINKIDS%40%40', data.linkId || "")
+                .replace('%40%40ITEM%40%40', encodeURIComponent(data.item) || "")
+                .replace('%40%40ORDINAL%40%40', data.ordinal || "")
+                .replace('%40%40CACHEBUSTER%40%40', commonData.cacheBuster || "")
+                .replace('%40%40PAGENAME%40%40', commonData.pageName || "")
+                .replace('%40%40MSEG%40%40', commonData.mseg || "")
+                .replace('%40%40DESTINATION%40%40', commonData.destination || "");
+        }
+
+        function logAndRedirect(data, destination) {
+            var logURL = renderWebTrackURL(data, destination),
+                image = new Image(),
+                timeout;
+
+            timeout = setTimeout(
+                function(){
+                    redirectToDest(destination);
+                },
+                2000
+            );
+
+            image.onload = image.onerror = function () {
+                clearTimeout(timeout);
+                redirectToDest(destination);
+            };
+
+            image.src = logURL;
+
+            return false;
+        }
+
+        /**
+         * Registers click event handler to body so it receives every click on anchor.
+         */
+        function attachHandler() {
+            var bodyTag = document.getElementsByTagName('body')[0];
+
+            bodyTag.on("click", 'a', function (elem, event) {
+                var target = event.target,
+                    enabled = target.closest('.cts-enabled'),
+                    disabled = target.closest('.cts-disabled'),
+                    destination = elem.getAttribute('href'),
+                    dataToLog;
+
+                if (typeof destination === "undefined") {
+                    return true;
+                }
+
+                if (target.hasClass('cts-clicked')) {
+                    return false;
+                }
+
+                //ACE-1060
+                if (disabled !== null && (enabled === null || disabled.childNodes.length < enabled.childNodes.length)) { return true }
+
+                dataToLog = getData(target);
+
+                // if object has no id it means that link shouldn't be tracked - follow the link
+                if (typeof dataToLog.linkId === "undefined") {
+                    return true;
+                }
+                event.preventDefault();
+
+                // mark this link as already clicked
+                target.addClass('cts-clicked');
+
+                return logAndRedirect(dataToLog, destination);
+            });
+        }
+
+        return {
+            attachHandler: attachHandler,
+            /**
+             * ::redirect() method is method used by oneClick module
+             */
+            redirect: function (ctsData, destinationHref, item) {
+                var data = {};
+                data.linkId = ctsData.linkId || ctsData.linkid;
+                data.item = item;
+                data.ordinal = '';
+                return logAndRedirect(data, destinationHref);
+            }
+        };
+    }());
+
+    /** Do the initial attachment to <body> links */
+    BCT.attachHandler();
+
+</script><script type="text/javascript" src="http://static.sfdict.com/app/js/require-37278.js"></script>
+<script type="text/javascript">
+    requirejs.config({
+            waitSeconds: 60,
+            baseUrl: "http://static.sfdict.com/dcom/js",
+            paths: {"appcore":"http:\/\/static.sfdict.com\/app\/js","options":"http:\/\/static.sfdict.com\/app\/js\/options-b826f","handlebars":"http:\/\/static.sfdict.com\/app\/js\/handlebars-v2.0.0-53b9f","facebook":"http:\/\/connect.facebook.net\/en_US\/all","jquery":"http:\/\/static.sfdict.com\/app\/js\/jquery-1.11.3.min-cf872","page\/wotd\/main_desktop":"page\/wotd\/main_desktop-7c16d","twitter":"https:\/\/platform.twitter.com\/widgets","google-plus":"https:\/\/apis.google.com\/js\/platform","instagram":"https:\/\/x.instagramfollowbutton.com\/follow"},
+            shim: {"handlebars":{"exports":"Handlebars"},"facebook":{"exports":"FB"},"twitter":{"exports":"twttr"},"google-plus":{"exports":"googleplus"},"instagram":[]}        });
+        define("runtime-options", function() {
+        return {"leaderboardFreqCap":5,"medrecFreqCap":5,"adDelay":500,"socialEvent":"{\"basePath\":\"http:\\\/\\\/track.dictionary.com\\\/track\\\/social\",\"attributes\":{\"site\":\"dict\",\"pageName\":\"\",\"ldid\":0}}","clientPlatform":"Desktop","wordOftheDayUrl":"http:\/\/www.dictionary.com\/wordoftheday","wotdAPI":"ajax\/wotd","todayDate":"2016-10-16","oldestDate":"1999-05-03","days":{"2016-10-10":{"word":"dilatory","definition":"tending to delay or procrastinate; slow; tardy.","imageUrl":"http:\/\/static.sfdict.com\/static\/wotd\/tiles\/20161010_dilatory.png","audioPlayerHtml":"<div class=\"audio-wrapper cts-disabled\">\r\n    <audio>\r\n        <source src=\"http:\/\/static.sfdict.com\/staticrep\/dictaudio\/lunawav\/D03\/D0307000.ogg\" type=\"audio\/ogg\">\r\n        <source src=\"http:\/\/static.sfdict.com\/staticrep\/dictaudio\/D03\/D0307000.mp3\" type=\"audio\/mpeg\">\r\n    <\/audio>\r\n    <div class=\"speaker\"><\/div>\r\n<\/div>","mapOrigin":"<div class=\"origin-map\">\n    <div class=\"map-area\"  data-linkid='a1l6u0'>\n                    <div class=\"origin-map-language\" style=\"left: 49.294444444444%;top: 37.561111111111%;\">\n                <div class=\"dot dot-left dot-top \"><\/div>\n                <div class=\"language-name oneClick-disabled\">\n                                            <a class=\"language-name\" href=\"http:\/\/www.dictionary.com\/browse\/latin\">Latin<\/a>\n                                    <\/div>\n            <\/div>\n                    <div class=\"origin-map-language\" style=\"right: 54.477777777778%;bottom: 68.088888888889%;\">\n                <div class=\"dot dot-right dot-bottom \"><\/div>\n                <div class=\"language-name oneClick-disabled\">\n                                            <a class=\"language-name\" href=\"http:\/\/www.dictionary.com\/browse\/middle-english\">Middle English<\/a>\n                                    <\/div>\n            <\/div>\n                    <div class=\"origin-map-language\" style=\"right: 54.2%;top: 32.466666666667%;\">\n                <div class=\"dot dot-right dot-top \"><\/div>\n                <div class=\"language-name oneClick-disabled\">\n                                            <a class=\"language-name\" href=\"http:\/\/www.dictionary.com\/browse\/anglo-french\">Anglo-French<\/a>\n                                    <\/div>\n            <\/div>\n            <\/div>\n<\/div>\n","timeline":"<div class=\"origin-timeline\">\n    <div class=\"span\" style=\"left:45.968882602546% ; width:3.5360678925035% ;\">\n                    <span class=\"date start-date\"   >1250-1300<\/span>\n            <\/div>\n<\/div>\n","origin":"<em>Dilatory<\/em> is related to the Latin verb <em>differre<\/em> meaning \"to postpone.\" It entered English around 1300.","definitions":["tending to delay or procrastinate; slow; tardy.","intended to cause delay, gain time, or defer decision: <em>a dilatory strategy<\/em>."],"citations":[{"author":"Mary Shelley","source":"<cite>Frankenstein; or, the Modern Prometheus<\/cite>, 1818","quote":"I remembered also the necessity imposed upon me of either journeying to England, or entering into a long correspondence with those philosophers of that country, whose knowledge and discoveries were of indispensable use to me in my present undertaking. The latter method of obtaining the desired intelligence was <strong>dilatory<\/strong> and unsatisfactory ..."},{"author":"Anthony Trollope","source":"<cite>Framley Parsonage<\/cite>, 1861","quote":"\"Lufton is so <strong>dilatory<\/strong>,\" Mr. Sowerby said. \"Why did he not arrange this at once, when he promised it? ...\""}],"pos":"adjective","pronunciation":"DIL-uh-tawr-ee, -tohr-ee","spot2":{"title":"Discover Our Editors\u2019 Picks","linkId":"jqy4y","text":"Pore Over vs. Pour Over","image":"http:\/\/blog.dictionary.com\/wp-content\/uploads\/2015\/05\/poreover.jpg","clickAction":"http:\/\/blog.dictionary.com\/pore-over-vs-pour-over\/","contentType":"hotword","shouldShowSocialSharingIcons":"yes"},"daybreak":"emailSignup","date":{"seconds":0,"minutes":0,"hours":0,"mday":10,"wday":1,"mon":10,"year":2016,"yday":283,"weekday":"Monday","month":"October","0":1476082800},"tileImageVersion":false},"2016-10-11":{"word":"bailiwick","definition":"a person's area of skill, knowledge, authority, or work.","imageUrl":"http:\/\/static.sfdict.com\/static\/wotd\/tiles\/20161011_bailiwick.png","audioPlayerHtml":"<div class=\"audio-wrapper cts-disabled\">\r\n    <audio>\r\n        <source src=\"http:\/\/static.sfdict.com\/staticrep\/dictaudio\/lunawav\/B00\/B0042100.ogg\" type=\"audio\/ogg\">\r\n        <source src=\"http:\/\/static.sfdict.com\/staticrep\/dictaudio\/B00\/B0042100.mp3\" type=\"audio\/mpeg\">\r\n    <\/audio>\r\n    <div class=\"speaker\"><\/div>\r\n<\/div>","mapOrigin":"","timeline":"<div class=\"origin-timeline\">\n    <div class=\"span\" style=\"left:58.345120226308% ; width:3.5360678925035% ;\">\n                    <span class=\"date start-date\"   >1425-1475<\/span>\n            <\/div>\n<\/div>\n","origin":"<em>Bailiwick<\/em> comes from the noun <em>bailie<\/em>, an obsolete form of <em>bailiff<\/em>. It entered English in the mid-1400s.","definitions":["a person's area of skill, knowledge, authority, or work: <em>to confine suggestions to one's own bailiwick<\/em>.","the district within which a bailie or bailiff has jurisdiction."],"citations":[{"author":"Paul Beatty","source":"<cite>The Sellout<\/cite>, 2015","quote":"Arguing cases in front of the Supreme Court isn't Hamp's <strong>bailiwick<\/strong>. He's an old-school criminal defense attorney."},{"author":"Mandy Brown interview by Robinson Meyer","source":"\"What Should a Digital Writing Tool Be?\" <cite>The Atlantic<\/cite>, September 16, 2013","quote":"One of my personal <strong>bailiwicks<\/strong> is cross-disciplinary pollination: the interesting things that happen when ideas or patterns from one field are carried over and adapted in another."}],"pos":"noun","pronunciation":"BEY-luh-wik","spot1":{"title":"Like Us on Facebook","linkId":"zfydrx","text":"Never miss our Word of the Day","image":"http:\/\/static.sfdict.com\/assets\/5535-6241889-1.jpg","clickAction":"https:\/\/www.facebook.com\/dictionarycom","contentType":"default","shouldShowSocialSharingIcons":"no"},"spot2":{"title":"Check Out Our Slideshows","linkId":"uvqned","text":"Know These 9 Commonly Confused Pairs?","image":"http:\/\/static.sfdict.com\/assets\/1268-5516557-15.jpg","clickAction":"http:\/\/www.dictionary.com\/slideshows\/hard-confusable","contentType":"slideshow","shouldShowSocialSharingIcons":"yes"},"daybreak":"none","date":{"seconds":0,"minutes":0,"hours":0,"mday":11,"wday":2,"mon":10,"year":2016,"yday":284,"weekday":"Tuesday","month":"October","0":1476169200},"tileImageVersion":false},"2016-10-12":{"word":"opuscule","definition":"a small or minor work.","imageUrl":"http:\/\/static.sfdict.com\/static\/wotd\/tiles\/20161012_opuscule.png","audioPlayerHtml":"<div class=\"audio-wrapper cts-disabled\">\r\n    <audio>\r\n        <source src=\"http:\/\/static.sfdict.com\/staticrep\/dictaudio\/lunawav\/O01\/O0137200.ogg\" type=\"audio\/ogg\">\r\n        <source src=\"http:\/\/static.sfdict.com\/staticrep\/dictaudio\/O01\/O0137200.mp3\" type=\"audio\/mpeg\">\r\n    <\/audio>\r\n    <div class=\"speaker\"><\/div>\r\n<\/div>","mapOrigin":"<div class=\"origin-map\">\n    <div class=\"map-area\"  data-linkid='a1l6u0'>\n                    <div class=\"origin-map-language\" style=\"left: 49.294444444444%;top: 37.561111111111%;\">\n                <div class=\"dot dot-left dot-top \"><\/div>\n                <div class=\"language-name oneClick-disabled\">\n                                            <a class=\"language-name\" href=\"http:\/\/www.dictionary.com\/browse\/latin\">Latin<\/a>\n                                    <\/div>\n            <\/div>\n                    <div class=\"origin-map-language\" style=\"right: 53.644444444444%;top: 33.855555555556%;\">\n                <div class=\"dot dot-right dot-top \"><\/div>\n                <div class=\"language-name oneClick-disabled\">\n                                            <a class=\"language-name\" href=\"http:\/\/www.dictionary.com\/browse\/french\">French<\/a>\n                                    <\/div>\n            <\/div>\n            <\/div>\n<\/div>\n","timeline":"<div class=\"origin-timeline\">\n    <div class=\"span\" style=\"left:74.257425742574% ; width:0.70721357850071% ;\">\n                    <span class=\"date start-date\"  style=\"left:-68px;\" >1650-1660<\/span>\n            <\/div>\n<\/div>\n","origin":"<em>Opuscule<\/em> entered English in the mid-1600s from French, and finds its roots in the Latin noun <em>opus<\/em> meaning \"work.\"","definitions":["a small or minor work.","a literary or musical work of small size."],"citations":[{"author":"Ricky Jay","source":"\"Times Square at 100; Please Don't Squash the Actors,\" <cite>New York Times<\/cite>, June 13, 2004","quote":"Its proprietor was William Heckler, who had already achieved fame in his chosen profession and who had written some 10 years earlier his <strong>opuscule<\/strong> on the peregrinations of trained fleas, ''Pulicology.''"},{"author":"Allen Kurzweil","source":"<cite>A Case of Curiosities<\/cite>, 1992","quote":"Books were arranged by size and subject: quarto with quarto, folio with folio, mechanical <strong>opuscule<\/strong> with mechanical <strong>opuscule<\/strong>."}],"pos":"noun","pronunciation":"oh-PUHS-kyool","spot2":{"title":"Discover Our Editors\u2019 Picks","linkId":"517qer","text":"Wednesday Winner: Deleterious","image":"http:\/\/blog.dictionary.com\/wp-content\/uploads\/2015\/10\/YWW_pink_blog.jpg","clickAction":"http:\/\/blog.dictionary.com\/wednesday-winner-deleterious\/","contentType":"hotword","shouldShowSocialSharingIcons":"yes"},"daybreak":"none","date":{"seconds":0,"minutes":0,"hours":0,"mday":12,"wday":3,"mon":10,"year":2016,"yday":285,"weekday":"Wednesday","month":"October","0":1476255600},"tileImageVersion":false},"2016-10-13":{"word":"hinterland","definition":"the remote or less developed parts of a country; back country.","imageUrl":"http:\/\/static.sfdict.com\/static\/wotd\/tiles\/20161013_hinterland.png","audioPlayerHtml":"<div class=\"audio-wrapper cts-disabled\">\r\n    <audio>\r\n        <source src=\"http:\/\/static.sfdict.com\/staticrep\/dictaudio\/lunawav\/H02\/H0292600.ogg\" type=\"audio\/ogg\">\r\n        <source src=\"http:\/\/static.sfdict.com\/staticrep\/dictaudio\/H02\/H0292600.mp3\" type=\"audio\/mpeg\">\r\n    <\/audio>\r\n    <div class=\"speaker\"><\/div>\r\n<\/div>","mapOrigin":"","timeline":"<div class=\"origin-timeline\">\n    <div class=\"span\" style=\"left:90.876944837341% ; width:0.35360678925035% ;\">\n                    <span class=\"date start-date\"  style=\"left:-68px;\" >1885-1890<\/span>\n            <\/div>\n<\/div>\n","origin":"<em>Hinterland<\/em> comes from German, translating literally as \"land behind.\" It entered English in the late 1800s.","definitions":["Often, <strong>hinterlands<\/strong>. the remote or less developed parts of a country; back country: <em>The hinterlands are usually much more picturesque than the urban areas<\/em>.","the land lying behind a coastal region.","an area or sphere of influence in the unoccupied interior claimed by the state possessing the coast."],"citations":[{"author":"E. B. Baatz","source":"\"Trendlines: Getting There from Here,\" <cite>CIO<\/cite>, September 1, 1995","quote":"In the sparsely populated <strong>hinterlands<\/strong> of Vermont and northern Maine, the high-tech revolution has been transforming the higher education process."},{"author":"D. H. Lawrence","source":"\"The Cross,\" <cite>Last Poems<\/cite>, 1932","quote":"... we are mostly unexplored <strong>hinterland<\/strong> \/ and our consciousness is a spot of light in a great but living darkness."}],"pos":"noun","pronunciation":"HIN-ter-land","spot1":{"title":"Follow Us on Instagram","linkId":"y6qubh","text":"Never miss our Word of the Day","image":"http:\/\/static.sfdict.com\/assets\/5535-6241889-0.jpg","clickAction":"https:\/\/instagram.com\/dictionarycom\/","contentType":"default","shouldShowSocialSharingIcons":"no"},"spot2":{"title":"Check Out Our Slideshows","linkId":"2moche","text":"Decode the pieces of our favorite portmanteaus","image":"http:\/\/static.sfdict.com\/assets\/1191-3825792-9.jpg","clickAction":"http:\/\/www.dictionary.com\/slideshows\/portmanteau","contentType":"slideshow","shouldShowSocialSharingIcons":"yes"},"daybreak":"ad","date":{"seconds":0,"minutes":0,"hours":0,"mday":13,"wday":4,"mon":10,"year":2016,"yday":286,"weekday":"Thursday","month":"October","0":1476342000},"tileImageVersion":false},"2016-10-14":{"word":"mutable","definition":"given to changing; fickle or inconstant.","imageUrl":"http:\/\/static.sfdict.com\/static\/wotd\/tiles\/20161014_mutable.png","audioPlayerHtml":"<div class=\"audio-wrapper cts-disabled\">\r\n    <audio>\r\n        <source src=\"http:\/\/static.sfdict.com\/staticrep\/dictaudio\/lunawav\/M07\/M0710100.ogg\" type=\"audio\/ogg\">\r\n        <source src=\"http:\/\/static.sfdict.com\/staticrep\/dictaudio\/M07\/M0710100.mp3\" type=\"audio\/mpeg\">\r\n    <\/audio>\r\n    <div class=\"speaker\"><\/div>\r\n<\/div>","mapOrigin":"<div class=\"origin-map\">\n    <div class=\"map-area\"  data-linkid='a1l6u0'>\n                    <div class=\"origin-map-language\" style=\"right: 54.477777777778%;top: 31.911111111111%;\">\n                <div class=\"dot dot-right dot-top \"><\/div>\n                <div class=\"language-name oneClick-disabled\">\n                                            <a class=\"language-name\" href=\"http:\/\/www.dictionary.com\/browse\/middle-english\">Middle English<\/a>\n                                    <\/div>\n            <\/div>\n                    <div class=\"origin-map-language\" style=\"left: 49.294444444444%;top: 37.561111111111%;\">\n                <div class=\"dot dot-left dot-top \"><\/div>\n                <div class=\"language-name oneClick-disabled\">\n                                            <a class=\"language-name\" href=\"http:\/\/www.dictionary.com\/browse\/latin\">Latin<\/a>\n                                    <\/div>\n            <\/div>\n            <\/div>\n<\/div>\n","timeline":"<div class=\"origin-timeline\">\n    <div class=\"span\" style=\"left:53.041018387553% ; width:3.5360678925035% ;\">\n                    <span class=\"date start-date\"   >1350-1400<\/span>\n            <\/div>\n<\/div>\n","origin":"<em>Mutable<\/em> derives from the Latin verb <em>m\u016bt\u0101re<\/em> meaning \"to change.\" It entered English in the early 1400s.","definitions":["given to changing; constantly changing; fickle or inconstant: <em>the mutable ways of fortune<\/em>.","liable or subject to change or alteration."],"citations":[{"author":"Gore Vidal","source":"<cite>Messiah<\/cite>, 1954","quote":"... we are all, I think, betrayed by those eyes of memory which are as <strong>mutable<\/strong> and particular as the ones with which we regard the material world, the vision altering, as it so often does, from near in youth to far in age."},{"author":"Edited by Steven Goldleaf","source":"\"Introduction,\" <cite>The New York Stories: John O'Hara<\/cite>, 2013","quote":"His stories warn readers not to understand his characters too quickly--their motives will always be mixed, their emotions always <strong>mutable<\/strong>, their voices always revealing."}],"pos":"adjective","pronunciation":"MYOO-tuh-buh l","spot2":{"title":"Discover Our Editors\u2019 Picks","linkId":"c463t3","text":"Wednesday Winner: Opuscule","image":"http:\/\/blog.dictionary.com\/wp-content\/uploads\/2015\/11\/YWW_orange_blog.jpg","clickAction":"http:\/\/blog.dictionary.com\/wednesday-winner-opuscule\/","contentType":"hotword","shouldShowSocialSharingIcons":"yes"},"daybreak":"none","date":{"seconds":0,"minutes":0,"hours":0,"mday":14,"wday":5,"mon":10,"year":2016,"yday":287,"weekday":"Friday","month":"October","0":1476428400},"tileImageVersion":false},"2016-10-15":{"word":"ignominy","definition":"disgrace; dishonor; public contempt.","imageUrl":"http:\/\/static.sfdict.com\/static\/wotd\/tiles\/20161015_ignominy.png","audioPlayerHtml":"<div class=\"audio-wrapper cts-disabled\">\r\n    <audio>\r\n        <source src=\"http:\/\/static.sfdict.com\/staticrep\/dictaudio\/lunawav\/I00\/I0029500.ogg\" type=\"audio\/ogg\">\r\n        <source src=\"http:\/\/static.sfdict.com\/staticrep\/dictaudio\/I00\/I0029500.mp3\" type=\"audio\/mpeg\">\r\n    <\/audio>\r\n    <div class=\"speaker\"><\/div>\r\n<\/div>","mapOrigin":"<div class=\"origin-map\">\n    <div class=\"map-area\"  data-linkid='a1l6u0'>\n                    <div class=\"origin-map-language\" style=\"left: 49.294444444444%;bottom: 62.438888888889%;\">\n                <div class=\"dot dot-left dot-bottom \"><\/div>\n                <div class=\"language-name oneClick-disabled\">\n                                            <a class=\"language-name\" href=\"http:\/\/www.dictionary.com\/browse\/latin\">Latin<\/a>\n                                    <\/div>\n            <\/div>\n            <\/div>\n<\/div>\n","timeline":"<div class=\"origin-timeline\">\n    <div class=\"span\" style=\"left:65.770862800566% ; width:0.70721357850071% ;\">\n                    <span class=\"date start-date\"   >1530-1540<\/span>\n            <\/div>\n<\/div>\n","origin":"<em>Ignominy<\/em> stems from the Latin noun <em>ign\u014dminia<\/em> meaning \"disgrace; dishonor,\" which in turn derives from the Latin noun <em>n\u014dmen<\/em> \"name.\" It entered English around 1540.","definitions":["disgrace; dishonor; public contempt.","shameful or dishonorable quality or conduct or an instance of this."],"citations":[{"author":"Nathaniel Hawthorne","source":"<cite>The Scarlet Letter<\/cite>, 1850","quote":"Walking in the shadow of a dream, as it were, and perhaps actually under the influence of a species of somnambulism, Mr. Dimmesdale reached the spot, where, now so long since, Hester Prynne had lived through her first hour of public <strong>ignominy<\/strong>."},{"author":"D. H. Lawrence","source":"<cite>Women in Love<\/cite>, 1920","quote":"There is no <strong>ignominy<\/strong> in death. There is complete <strong>ignominy<\/strong> in an unreplenished, mechanised life."}],"pos":"noun","pronunciation":"IG-nuh-min-ee, ig-NOM-uh-nee","spot2":{"title":"Check Out Our Slideshows","linkId":"3m61p2","text":"8 Offbeat Literary Genres to Get Lost In","image":"http:\/\/static.sfdict.com\/assets\/3182-2139660-0.jpg","clickAction":"http:\/\/www.dictionary.com\/slideshows\/offbeat-literary-genres","contentType":"slideshow","shouldShowSocialSharingIcons":"yes"},"daybreak":"none","date":{"seconds":0,"minutes":0,"hours":0,"mday":15,"wday":6,"mon":10,"year":2016,"yday":288,"weekday":"Saturday","month":"October","0":1476514800},"tileImageVersion":false},"2016-10-16":{"word":"lexicon","definition":"the vocabulary of a particular language, field, social class, person, etc.","imageUrl":"http:\/\/static.sfdict.com\/static\/wotd\/tiles\/20161016_lexicon.png","audioPlayerHtml":"<div class=\"audio-wrapper cts-disabled\">\r\n    <audio>\r\n        <source src=\"http:\/\/static.sfdict.com\/staticrep\/dictaudio\/lunawav\/L02\/L0218600.ogg\" type=\"audio\/ogg\">\r\n        <source src=\"http:\/\/static.sfdict.com\/staticrep\/dictaudio\/L02\/L0218600.mp3\" type=\"audio\/mpeg\">\r\n    <\/audio>\r\n    <div class=\"speaker\"><\/div>\r\n<\/div>","mapOrigin":"<div class=\"origin-map\">\n    <div class=\"map-area\"  data-linkid='a1l6u0'>\n                    <div class=\"origin-map-language\" style=\"right: 50.705555555556%;top: 37.561111111111%;\">\n                <div class=\"dot dot-right dot-top \"><\/div>\n                <div class=\"language-name oneClick-disabled\">\n                                            <a class=\"language-name\" href=\"http:\/\/www.dictionary.com\/browse\/medieval-latin\">Medieval Latin<\/a>\n                                    <\/div>\n            <\/div>\n                    <div class=\"origin-map-language\" style=\"left: 51.911111111111%;top: 38.577777777778%;\">\n                <div class=\"dot dot-left dot-top \"><\/div>\n                <div class=\"language-name oneClick-disabled\">\n                                            <a class=\"language-name\" href=\"http:\/\/www.dictionary.com\/browse\/greek\">Greek<\/a>\n                                    <\/div>\n            <\/div>\n            <\/div>\n<\/div>\n","timeline":"<div class=\"origin-timeline\">\n    <div class=\"span\" style=\"left:70.36775106082% ; width:0.70721357850071% ;\">\n                    <span class=\"date start-date\"  style=\"left:-68px;\" >1595-1605<\/span>\n            <\/div>\n<\/div>\n","origin":"<em>Lexicon<\/em> finds its roots in the Greek noun <em>l\u00e9xis<\/em> meaning \"speech, word.\" It entered English in the late 1500s.","definitions":["the vocabulary of a particular language, field, social class, person, etc.","a wordbook or dictionary, especially of Greek, Latin, or Hebrew.","inventory or record: <em>unparalleled in the lexicon of human relations<\/em>."],"citations":[{"author":"David Crystal","source":"<cite>The Cambridge Encyclopedia of the English Language<\/cite>, 1995","quote":"The English <strong>lexicon<\/strong> is so vast and varied that it is impossible to classify it into neat categories.... The <strong>lexicon<\/strong> is a particularly sensitive index of historical, social, and technological change."},{"author":"Brian Stelter","source":"\"Camps Are Cleared, but '99 Percent' Still Occupies the Lexicon,\" <cite>New York Times<\/cite>, November 30, 2011","quote":"Whatever the long-term effects of the Occupy movement, protesters have succeeded in implanting \u201cWe are the 99 percent,\u201d referring to the vast majority of Americans ... into the cultural and political <strong>lexicon<\/strong>."}],"pos":"noun","pronunciation":"LEK-si-kon, -kuh n","spot2":{"title":"Discover Our Editors' Picks","linkId":"uczgc1","text":"Making Connections With Conjunctions","image":"http:\/\/blog.dictionary.com\/wp-content\/uploads\/2016\/10\/conjunction_test.png","clickAction":"http:\/\/blog.dictionary.com\/making-connections-with-conjunctions\/","contentType":"hotword","shouldShowSocialSharingIcons":"yes"},"daybreak":"emailSignup","date":{"seconds":0,"minutes":0,"hours":0,"mday":16,"wday":0,"mon":10,"year":2016,"yday":289,"weekday":"Sunday","month":"October","0":1476601200},"tileImageVersion":false}},"currentDay":"2016-10-16","preloadPast":6,"preloadFuture":0,"isMasterDay":true,"TBWElementOffset":48,"isMobile":false,"templateSignupDaybreak":"<div class=\"day-break day-break-bg\">\n    <div class=\"day-break-inner\">\n        <form action=\"\" class=\"day-break-subscription-form\">\n            <div class=\"first-row\">\n                <div class='left-part'>Get our <\/div>\n                <div class='middle-part'>Word <span>of the<\/span> Day<\/div>\n                <div class='right-part'>Email<\/div>\n                <div class=\"input\">\n                    <input id=\"day-break-subscription-email\" type=\"text\" placeholder=\"email address\" name=\"email\"><input id=\"day-break-subscription-button\" type=\"submit\" value=\"SIGN UP\">\n                <\/div>\n            <\/div>\n        <\/form>\n        <div class=\"message\"><span>Thanks<\/span> for signing up!<\/div>\n    <\/div>\n<\/div>\n\n","templateCitation":"<div class=\"citation-wrapper smart-item\" data-smartOrder=\"2\" data-cts='{\"linkId\":\"a1l6u0\",\"infix\":\"\",\"domain\":\"dictionary.com\",\"clkpage\":\"\",\"clkmod\":\"wotdm1\",\"clksite\":\"dict\",\"clkld\":0}' data-href='http:\/\/www.dictionary.com\/browse\/'>\n    <div class=\"citation-context\">\n        <div class=\"citation-header\">\n            Citations for <strong>{{word}}<\/strong>\n        <\/div>\n        {{{helperRenderListOfCitations citations}}}    <\/div>\n<\/div>","templateOrigin":"<div class=\"origin-wrapper smart-item\" data-smartOrder=\"4\" data-cts='{\"linkId\":\"a1l6u0\",\"infix\":\"\",\"domain\":\"dictionary.com\",\"clkpage\":\"\",\"clkmod\":\"wotdm1\",\"clksite\":\"dict\",\"clkld\":0}' data-href='http:\/\/www.dictionary.com\/browse\/'>\n    <div class=\"origin-context\">\n        <div class=\"origin-header\">\n        Origin of <strong>{{word}}<\/strong>\n        <\/div>\n        {{{mapOrigin}}}{{{timeline}}}        <div class=\"origin-content\">\n            {{{origin}}}        <\/div>\n    <\/div>\n<\/div>\n","templateDashSpot":"<div class=\"dash-spot dash-spot-md-{{spotNumber}} smart-item\" data-smartOrder=\"{{smartOrder}}\">\n    <div  data-imp=\"{{linkId}}\" data-linkid='{{linkId}}'>\n        {{renderDashTitle clickAction title}}        <div class=\"dash-spot-image\">\n            <a href=\"{{clickAction}}\" target=\"_blank\">\n                <img src=\"http:\/\/static.sfdict.com\/sizedimage\/sizedimage?width=293&height=293&url=%7B%7Bimage%7D%7D\"\/>\n            <\/a>\n            {{renderDashText clickAction text}}        <\/div>\n    <\/div>\n    {{renderSocialDash}}<\/div>\n","templateTile":"\n\n<div class=\"tile-wrapper smart-item\" data-smartOrder=\"1\" data-cts='{\"linkId\":\"cks7jy\",\"infix\":\"\",\"domain\":\"dictionary.com\",\"clkpage\":\"\",\"clkmod\":\"wotdm1\",\"clksite\":\"dict\",\"clkld\":0}' data-href='http:\/\/www.dictionary.com\/browse\/'>\n    <div>\n        <div class=\"tile-image\"  data-linkid='cks7jy'>\n            <a href=\"http:\/\/www.dictionary.com\/browse\/{{helperEscapeExpression word}}\"\n               class=\"{{helperSetCorrectImageTile tileImageVersion}}\">\n                {{helperRenderCorrectImageTileTemplate tileImageVersion}}            <\/a>\n        <\/div>\n        <div class=\"tile-companion\">\n                            <div class=\"icon\">\n                    {{{audioPlayerHtml}}}                <\/div>\n            {{{helperRenderSocialTile }}}        <\/div>\n        \n\n<div class=\"definition-box\">\n    <div class=\"definition-header\">\n        <!-- if master day is not requested day then add h1 for SEO purposes to requested day - EN-444 -->\n        <h1>            Definitions for <strong>{{word}}<\/strong>\n        <\/h1>    <\/div>\n    <ol class=\"definition-list {{{helperSetProperDefinitionClass definitions}}}\">\n        {{{helperRenderListOfDefinitions definitions}}}            <\/ol>\n<\/div>        <div class=\"tile-subscribe\">\n            <div class=\"tile-form\">\n                <form action=\"\" class=\"subscription-form\">\n                    <div class=\"subscribe-close\"><\/div>\n                    <div class=\"content\">\n                        <p class=\"phrase\">Learn something <br \/>new every day<\/p> <br \/>\n                        <p class=\"styled-phrase\">GET OUR<\/p> <br \/>\n                        <label for=\"POST-name\" class=\"title\">Word <i>of the<\/i> Day email<\/label>\n                        <div class=\"email-section\">\n                            <input id=\"POST-name\" type=\"text\" name=\"email\" placeholder=\"email address\"><input type=\"submit\" value=\" \">\n                        <\/div>\n                    <\/div>\n                    <div class=\"message oneClick-disabled\"><span>Thank you<\/span><span>for signing up<\/span><\/div>\n                <\/form>\n            <\/div>\n        <\/div>\n        <div class=\"tile-change-view oneClick-disabled\">\n            Get <span class=\"light\">the<\/span> Word <span class=\"italic\">of the <\/span>Day <span class=\"light\">Email<\/span>\n        <\/div>\n    <\/div>\n<\/div>\n\n","templateProgrammableTile":"\n<div class=\"programmable-image\">\n    <span class=\"word\">{{word}}<\/span>\n                        <span class=\"middle-row\"><span\n                                class=\"part-of-speech\">{{pos}}<\/span> [{{pronunciation}}]<\/span>\n    <span class=\"definition\">{{{helperRenderFirstDefinition definitions}}}<\/span>\n<\/div>","templateImageTile":"\n<img alt=\"{{word}}\" src=\"http:\/\/static.sfdict.com\/sizedimage\/sizedimage?width=455&height=455&url=%7B%7BimageUrl%7D%7D\"\/>\n","templateDate":"\n<div class=\"date-wrapper oneClick-disabled\">\n    {{date.weekday}}, <span class=\"mobile-font-bold\">{{date.month}} {{helperFixMonthDay date.mday}}, {{date.year}}<\/span>\n<\/div>","templateTBWElement":"<li style='top: {{topPosition}}px' id=\"bw-{{date}}\"  data-day=\"{{date}}\">\n                <span class=\"tbw-date\">\n                    {{shortWeekDay}},\n                    {{monthToDisplay}}                    {{monthDay}},\n                    {{year}}                <\/span>\n    <a href=\"http:\/\/www.dictionary.com\/wordoftheday\/{{year}}\/{{month}}\/{{monthDay}}\/{{encodedWord}}\">{{word}}<\/a>\n<\/li>","templateDashSocial":"<div class=\"wotd-social-share\" data-placement=\"feedspot{{spotNumber}}\" data-content-title=\"{{contentTitle}}\">\n    <a class=\"share-icon facebook\" data-href=\"{{clickAction}}\" href=\"#\"><\/a>\n    <a class=\"share-icon twitter\" href=\"https:\/\/twitter.com\/share?url={{clickAction}}&text={{helperSetSocialText text contentType}}\" target=\"_blank\"><\/a>\n    <a class=\"share-icon google\" href=\"https:\/\/plus.google.com\/share?url={{clickAction}}\" onclick=\"javascript:window.open(this.href, '', 'menubar=no,toolbar=no,resizable=no,scrollbars=no,height=400,width=600');return false\"><\/a>\n    <\/div>\n","templateTileSocial":"<div class=\"wotd-social-share\" data-placement=\"definitionbox\" data-content-title=\"{{contentTitle}}\">\n    <a class=\"share-icon facebook\" data-href=\"http:\/\/www.dictionary.com\/wordoftheday\/{{year}}\/{{month}}\/{{mday}}\/{{word}}\" href=\"#\"><\/a>\n    <a class=\"share-icon twitter\" href=\"https:\/\/twitter.com\/share?url=http:\/\/www.dictionary.com\/wordoftheday\/{{year}}\/{{month}}\/{{mday}}\/{{word}}&text=Word of the Day from @Dictionarycom - {{{ text }}}\" target=\"_blank\"><\/a>\n    <a class=\"share-icon google\" href=\"https:\/\/plus.google.com\/share?url=http:\/\/www.dictionary.com\/wordoftheday\/{{year}}\/{{month}}\/{{mday}}\/{{word}}\" onclick=\"javascript:window.open(this.href, '', 'menubar=no,toolbar=no,resizable=no,scrollbars=no,height=400,width=600');return false\"><\/a>\n            <span  class=\"ig-follow share-icon instagram\" data-id=\"17031a6e93\" data-count=\"false\" data-size=\"small\" data-username=\"false\"><\/span>\n        <a href=\"http:\/\/www.pinterest.com\/pin\/create\/button\/?url=http:\/\/www.dictionary.com\/wordoftheday\/{{year}}\/{{month}}\/{{mday}}\/{{word}}&media={{imageUrl}}&description=Dictionary.com\u2019s Word of the Day - {{{ text }}}\"\n           data-pin-do=\"buttonPin\"\n           class=\"share-icon pinterest\">\n        <\/a>\n    <\/div>\n","medrecCount":1,"leaderboardCount":1,"adsConfig":{"zone":"\/23219321\/iac.dict.dictry.dw\/wotd\/homepage\/channel","spots":[{"prefix":"leaderboard","dimensions":"[[728,90],[970,90]]","targeting":{"pos2":"728x90_1"}},{"prefix":"medrec","dimensions":"[300,250]","targeting":{"pos2":"300x250_1"}}],"targeting":{"pos":"top","tx1":"wotd","tx2":"homepage","ptype":"channel"}},"wotdpageCount":1,"pageName":"dict-wordoftheday","CTSParams":{"infix":"","clkpage":"dict-wordoftheday","clksite":"dict","clkld":0},"webTrack":{"clickInner":"http:\/\/track.dictionary.com\/main.gif?ev=n&tg=%40%40TARGET%40%40&ar=%40%40ADREFRESH%40%40&ms=%40%40MSEG%40%40&rf=%40%40REFERRER%40%40&cb=%40%40CACHEBUSTER%40%40&pn=%40%40PAGENAME%40%40&st=dict&ab=&dc=desktop","impressions":"http:\/\/track.dictionary.com\/main.gif?ev=i&lk=%40%40IMPRESSIONLINKIDS%40%40&ms=%40%40MSEG%40%40&rf=%40%40REFERRER%40%40&cb=%40%40CACHEBUSTER%40%40&pn=%40%40PAGENAME%40%40&st=dict&ab=&dc=desktop","pageview":"http:\/\/track.dictionary.com\/main.gif?ev=p&ct=%40%40CONTENTTITLE%40%40&ms=%40%40MSEG%40%40&rf=%40%40REFERRER%40%40&cb=%40%40CACHEBUSTER%40%40&pn=%40%40PAGENAME%40%40&st=dict&ab=&dc=desktop","click":"http:\/\/track.dictionary.com\/main.gif?ev=c&cl=%40%40LINKIDS%40%40&ci=%40%40ITEM%40%40&co=%40%40ORDINAL%40%40&ms=%40%40MSEG%40%40&ds=%40%40DESTINATION%40%40&rf=%40%40REFERRER%40%40&cb=%40%40CACHEBUSTER%40%40&pn=%40%40PAGENAME%40%40&st=dict&ab=&dc=desktop"},"subscribeAPI":"http:\/\/app.dictionary.com\/api\/ajaxmailer\/subscription?pageName=dict-wordoftheday&siteName=dict&ld=0&mseg=98","clickLinkDatePicker":"http:\/\/click.dictionary.com\/click\/b4jtna?clksite=dict&clkpage=dict-wordoftheday&clkld=&clkmod=wotdrr&clkdest=http%3A%2F%2Fwww.dictionary.com%2Fwordoftheday%2F%40%40DATE%40%40"};
+    });
+    require(["page\/wotd\/main_desktop"])
+</script>
+<script>
+    (function (factory) {
+        if (typeof require === 'function') {
+            require(['jquery'], factory);
+        } else {
+            factory($);
+        }
+    }(function($) {
+        var impressionLinkIds = {};
+        $('[data-imp]').each(function () {
+            if ($(this).is(':visible')) {
+                var imp = $(this).data('imp').toString().split('|', 2);
+                if (impressionLinkIds[imp[0]] === undefined) {
+                    impressionLinkIds[imp[0]] = 0;
+                }
+                if (imp[1] !== undefined) {
+                    impressionLinkIds[imp[0]] += parseInt(imp[1]);
+                } else {
+                    impressionLinkIds[imp[0]] += 1;
+                }
+            }
+        });
+
+        var lkValue = '';
+        for (var linkId in impressionLinkIds) {
+            lkValue += linkId + (impressionLinkIds[linkId] > 1 ? '|' + impressionLinkIds[linkId] : '') + ','
+        }
+        if (lkValue.slice(-1) === ',') {
+            lkValue = lkValue.slice(0, -1);
+        }
+        if (lkValue != '') {
+            var ms = (typeof ms === 'undefined') ? cookiesManager.getCookieValue('mseg') || "" : ms;
+            new Image().src = "http://track.dictionary.com/main.gif?ev=i&pn=dict-wordoftheday&st=dict&ab=&dc=desktop&lk=" + lkValue + "&ms=" + ms + "&rf=" + encodeURIComponent(document.referrer) + "&cb=" + Math.floor((Math.random()*899999999)+100000000);
+        }
+    }));
+</script>
+    </body>
+    </html>

@@ -1,0 +1,5 @@
+#!/bin/bash
+while true; do
+	echo -e "%{c}%{A:pulseaudio-ctl mute:}\uea2a %{A}%{F#ff6600}|%{F-}%{A:amixer -c 1 sset PCM 5%-:} \uea28 %{A}%{F#ff6600}|%{F-}%{A:amixer -c 1 sset PCM 5%+:} \uea26 %{A}%{F#ff6600}|%{F-}%{A:playerctl -p vlc previous:} \uea1f %{A}%{F#ff6600}|%{F-}%{A:playerctl -p vlc pause:} \uea1d %{A}%{F#ff6600}|%{F-}%{A:playerctl -p vlc play:} \uea1c %{A}%{F#ff6600}|%{F-}%{A:playerctl -p vlc next:} \uea20%{A}"
+	sleep 1;
+done | lemonbar -p -d -B#c0262626 -F#A0A0A0 -a 7 -g 250x20+3208+10 -r 3 -R#FF993d00 -f "Source Code Pro-9" -f "Icomoon-11" | bash
